@@ -21,6 +21,7 @@
             --button-bg: #444444;
             --button-hover-bg: #555555;
             --header-bg: #222222; /* Header for draggable modals */
+            --update-color: #ff5722; /* Deep Orange for update button */
         }
 
         body {
@@ -61,6 +62,59 @@
             0% { transform: scale(0); opacity: 0; }
             50% { transform: scale(1); opacity: 1; }
             100% { transform: scale(0); opacity: 0; }
+        }
+
+        /* Update Button Styling */
+        #update-button-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 50;
+        }
+
+        #update-button {
+            display: none; /* Controlled by JS */
+            padding: 10px 15px;
+            background-color: var(--update-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+            animation: pulse 1.5s infinite;
+        }
+
+        #update-button:hover {
+            background-color: #ff8a65;
+            transform: scale(1.05);
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 87, 34, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0); }
+        }
+
+        /* Update Modal (Simulated Progress) */
+        #updateProgressModal {
+            z-index: 200;
+        }
+        
+        .update-bar-container {
+            width: 300px;
+            height: 20px;
+            background-color: #444;
+            border-radius: 10px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        
+        #update-progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: var(--update-color);
+            transition: width 0.1s linear;
         }
 
         /* Main Container - The Selenite Window */
@@ -123,7 +177,7 @@
             background-color: var(--grid-bg);
             padding: 20px;
             border-radius: 10px;
-            margin-bottom: 10px; /* Reduced margin since menu is gone */
+            margin-bottom: 10px; 
         }
 
         .game-button {
@@ -162,7 +216,7 @@
             font-weight: 700;
         }
 
-        /* Modals (Game, Bookmarklet, News, Settings, Links) */
+        /* Modals (Game, Bookmarklet, Updates, Settings, Links) */
         .modal {
             display: none; 
             position: fixed;
@@ -180,55 +234,8 @@
         .modal.active {
             display: flex;
         }
-
-        /* Draggable/Movable Modal (Bookmarklet only) */
-        .modal-movable {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 400px; /* Smaller for bookmarklets */
-            height: 600px;
-            max-width: 90%;
-            max-height: 90%;
-            background-color: black; 
-            border: 5px solid var(--modal-border);
-            border-radius: 10px;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            cursor: default; /* Default cursor for content */
-        }
-
-        .modal-header {
-            padding: 10px;
-            background-color: var(--header-bg);
-            color: var(--icon-hover-color);
-            border-bottom: 1px solid var(--modal-border);
-            cursor: move; /* Move cursor on header */
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-title {
-            font-weight: bold;
-        }
-
-        .close-button {
-            font-size: 1.5em;
-            color: var(--icon-hover-color);
-            cursor: pointer;
-            margin-left: 10px;
-            transition: color 0.2s;
-        }
-
-        .close-button:hover {
-            color: #ff4d4d;
-        }
-
-        /* Standard Game Modal */
+        
+        /* Modal Content Styling */
         .modal-content-game {
             position: relative;
             width: 90%;
@@ -242,6 +249,17 @@
             overflow: hidden;
         }
 
+        /* Update Simulation Modal (smaller, fixed size) */
+        .modal-content-update {
+            position: relative;
+            width: 350px;
+            padding: 30px;
+            background-color: var(--grid-bg);
+            border: 3px solid var(--update-color);
+            border-radius: 10px;
+            text-align: center;
+        }
+
         .game-iframe {
             width: 100%;
             height: 100%;
@@ -249,7 +267,7 @@
             display: block; 
         }
 
-        /* Content Areas for News/Settings/Links */
+        /* Content Areas for Updates/Settings/Links */
         .page-container {
             flex-grow: 1;
             padding: 20px;
@@ -267,28 +285,7 @@
             margin-bottom: 20px;
         }
 
-        /* Bookmark Specific Styling */
-        .bookmark-item {
-            background-color: var(--button-bg);
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            text-align: left;
-        }
-
-        .bookmark-link {
-            display: block;
-            color: #4CAF50; 
-            font-family: monospace;
-            word-wrap: break-word;
-            text-decoration: none;
-            cursor: copy;
-            font-size: 0.8em;
-            margin-top: 5px;
-        }
-
-        /* Settings Specific Styling */
+        /* Settings Specific Styling (used for Updates changelog) */
         .setting-item {
             margin-bottom: 15px;
             padding: 10px;
@@ -297,19 +294,9 @@
             justify-content: space-between;
             align-items: center;
         }
-
-        .setting-item label {
-            font-weight: bold;
-        }
-
-        /* Links Page Styling */
-        .link-item a {
-            color: #ff9800; /* Orange link color */
-            text-decoration: none;
-            word-wrap: break-word;
-        }
-        .link-item a:hover {
-            text-decoration: underline;
+        
+        .setting-item strong {
+            color: var(--update-color);
         }
 
         /* Responsive Design */
@@ -319,6 +306,7 @@
             .game-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; padding: 15px; }
             .game-icon { font-size: 2.5em; }
             .modal-movable { width: 95%; height: 90%; }
+            #update-button-container { top: 10px; right: 10px; }
         }
     </style>
 </head>
@@ -326,64 +314,67 @@
 
     <div class="stars"></div>
 
+    <div id="update-button-container">
+        <button id="update-button" onclick="initiateUpdate()">
+            Update to v1.2.0
+        </button>
+    </div>
+
     <div class="container">
-        <!-- New Title -->
         <h1 class="title">gamesunblocked67</h1>
-        <!-- Subtitle will be filled by JS with a random message -->
         <p class="subtitle"></p>
 
-        <!-- New Top Menu -->
         <div class="top-menu">
-            <a href="#" class="menu-link" data-modal="newsModal">News</a>
+            <a href="#" class="menu-link" data-modal="updatesModal">Updates</a>
             <a href="#" class="menu-link" data-modal="bookmarkletsModal">Bookmarklets</a>
             <a href="#" class="menu-link" data-modal="linksModal">Links</a>
             <a href="#" class="menu-link" data-modal="settingsModal">Settings</a>
         </div>
         
-        <div class="game-grid">
-            <!-- Game 1: Geometry Dash Lite (Embed) -->
+        <div class="game-grid" id="game-grid">
             <a href="#" class="game-button" data-modal="gdLiteModal">
                 <span class="game-icon">🔺</span>
                 <span class="game-title">Geometry Dash Lite</span>
             </a>
 
-            <!-- Game 2: Retro Bowl (Link - Embed blocked) -->
             <a href="https://retrobowlgame.io/" target="_blank" class="game-button external">
                 <span class="game-icon">🏈</span>
                 <span class="game-title">Retro Bowl (Link)</span>
             </a>
 
-            <!-- Game 3: 2048 (Embed) -->
             <a href="#" class="game-button" data-modal="2048Modal">
                 <span class="game-icon">🔢</span>
                 <span class="game-title">2048</span>
             </a>
 
-            <!-- Game 4: Geometry Dash Subzero (Embed) -->
             <a href="#" class="game-button" data-modal="gdSubzeroModal">
                 <span class="game-icon">🧊</span>
                 <span class="game-title">GD Subzero</span>
             </a>
 
-            <!-- Game 5: Among Us (Embed) -->
             <a href="#" class="game-button" data-modal="amongUsModal">
                 <span class="game-icon">👽</span>
                 <span class="game-title">Among Us (Embed)</span>
             </a>
             
-            <!-- Game 6: FNAF 1 (Embed Attempt - Updated Link) -->
             <a href="#" class="game-button" data-modal="fnafModal">
                 <span class="game-icon">🐻</span>
                 <span class="game-title">FNAF 1 (Embed)</span>
             </a>
+
+            </div>
+    </div>
+
+    <div id="updateProgressModal" class="modal">
+        <div class="modal-content-update">
+            <h3>Downloading Update v1.2.0...</h3>
+            <p id="update-message">Preparing files...</p>
+            <div class="update-bar-container">
+                <div id="update-progress-bar"></div>
+            </div>
         </div>
     </div>
 
-    <!-- ---------------------------------------------------------------------- -->
-    <!-- MODALS (Hidden Content) -->
-    <!-- ---------------------------------------------------------------------- -->
-
-    <!-- Modal: GD Lite -->
     <div id="gdLiteModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('gdLiteModal')">&times;</span>
@@ -391,7 +382,6 @@
         </div>
     </div>
 
-    <!-- Modal: 2048 -->
     <div id="2048Modal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('2048Modal')">&times;</span>
@@ -399,7 +389,6 @@
         </div>
     </div>
 
-    <!-- Modal: GD Subzero -->
     <div id="gdSubzeroModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('gdSubzeroModal')">&times;</span>
@@ -407,7 +396,6 @@
         </div>
     </div>
     
-    <!-- Modal: Among Us -->
     <div id="amongUsModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('amongUsModal')">&times;</span>
@@ -415,7 +403,6 @@
         </div>
     </div>
     
-    <!-- Modal: FNAF 1 -->
     <div id="fnafModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('fnafModal')">&times;</span>
@@ -423,8 +410,14 @@
         </div>
     </div>
 
+    <div id="clickerModal" class="modal">
+        <div class="modal-content-game">
+            <span class="close-button" onclick="closeModal('clickerModal')">&times;</span>
+            <iframe class="game-iframe" src="https://selenite.cc/resources/semag/clicker/index.html" allowfullscreen></iframe>
+        </div>
+    </div>
 
-    <!-- Modal: BOOKMARKLETS (Draggable) -->
+
     <div id="bookmarkletsModal" class="modal">
         <div id="bookmarkletWindow" class="modal-movable">
             <div id="bookmarkletHeader" class="modal-header">
@@ -464,27 +457,36 @@
         </div>
     </div>
 
-    <!-- Modal: NEWS Page -->
-    <div id="newsModal" class="modal">
+    <div id="updatesModal" class="modal">
         <div class="modal-content-game">
-            <span class="close-button" onclick="closeModal('newsModal')">&times;</span>
+            <span class="close-button" onclick="closeModal('updatesModal')">&times;</span>
             <div class="page-container">
-                <h3>📰 Site News & Updates</h3>
+                <h3>✨ Updates & Changelog</h3>
                 
                 <div class="setting-item">
-                    <span>**November 12, 2025:**</span>
-                    <span>Title changed to "gamesunblocked67" and the menu moved to the top!</span>
+                    <strong>Version 1.2.0 (Latest)</strong>
+                    <span>**NEW!** Added a Clicker Game. Implemented update notification system.</span>
+                </div>
+
+                <div class="setting-item">
+                    <strong>Version 1.1.1</strong>
+                    <span>Title changed to "gamesunblocked67". Menu moved to the top. Random welcome messages implemented.</span>
                 </div>
                 
                 <div class="setting-item">
-                    <span>**Important Note:**</span>
-                    <span>Games like Retro Bowl must be opened in a new tab because their owners block embedding.</span>
+                    <strong>Version 1.1.0</strong>
+                    <span>Initial release. Added GD Lite, Retro Bowl, 2048, GD Subzero, Among Us, and FNAF 1.</span>
+                </div>
+
+                <div class="setting-item">
+                    <p style="color: var(--icon-color); margin-top: 20px;">
+                        *Games like Retro Bowl must be opened in a new tab because their owners block embedding.
+                    </p>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Modal: SETTINGS Page -->
     <div id="settingsModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('settingsModal')">&times;</span>
@@ -503,13 +505,17 @@
                 
                 <div class="setting-item">
                     <label for="version">Current Version</label>
-                    <span>1.1.1</span>
+                    <span id="current-version-display">1.1.1</span>
+                </div>
+                
+                <div class="setting-item" style="color: var(--update-color);">
+                    <label>Update System Check</label>
+                    <span>Target: 1.2.0</span>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Modal: LINKS Page -->
     <div id="linksModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('linksModal')">&times;</span>
@@ -533,9 +539,95 @@
     <script>
         // JavaScript for all dynamic functionality
         
-        // ----------------------------------------------------------------------
-        // 1. Initial Load: Random Subtitle Message
-        // ----------------------------------------------------------------------
+        // --- CONFIGURATION & INITIALIZATION ---
+        const CURRENT_VERSION = "1.2.0"; // The actual version of the code in this file
+        const OLD_VERSION = "1.1.1";     // The version the update is from
+        const LOCAL_STORAGE_KEY = 'gamesunblocked_version';
+
+        // 1. Check/Set Local Version
+        let storedVersion = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (!storedVersion) {
+            // First time loading, set the initial version (or the starting version for the update)
+            storedVersion = OLD_VERSION;
+            localStorage.setItem(LOCAL_STORAGE_KEY, storedVersion);
+        }
+        
+        const isUpdateAvailable = (storedVersion < CURRENT_VERSION);
+
+        // --- UPDATE SYSTEM LOGIC ---
+        
+        function initiateUpdate() {
+            if (!isUpdateAvailable) return;
+
+            const updateModal = document.getElementById('updateProgressModal');
+            const progressBar = document.getElementById('update-progress-bar');
+            const updateMessage = document.getElementById('update-message');
+            const updateButton = document.getElementById('update-button');
+            
+            // Disable button and show modal
+            updateButton.style.display = 'none';
+            openModal('updateProgressModal');
+            
+            let progress = 0;
+            const intervalTime = 100; 
+
+            const updateInterval = setInterval(() => {
+                progress += 5;
+                progressBar.style.width = `${progress}%`;
+
+                if (progress <= 30) {
+                    updateMessage.textContent = 'Downloading core files...';
+                } else if (progress <= 70) {
+                    updateMessage.textContent = 'Installing new game assets...';
+                } else if (progress <= 95) {
+                    updateMessage.textContent = 'Finalizing configuration...';
+                } else {
+                    // Update complete
+                    clearInterval(updateInterval);
+                    updateMessage.textContent = 'Installation complete! Reloading...';
+                    
+                    setTimeout(() => {
+                        // Apply the update by setting the new version and reloading
+                        localStorage.setItem(LOCAL_STORAGE_KEY, CURRENT_VERSION);
+                        window.location.reload();
+                    }, 1000);
+                }
+            }, intervalTime);
+        }
+
+        function displayNewContent(version) {
+            // This function runs if the stored version is CURRENT_VERSION
+            if (version === CURRENT_VERSION) {
+                // Add the new game button for v1.2.0
+                const gameGrid = document.getElementById('game-grid');
+                const newGameHTML = `
+                    <a href="#" class="game-button" data-modal="clickerModal">
+                        <span class="game-icon">💰</span>
+                        <span class="game-title">Clicker Game (NEW!)</span>
+                    </a>
+                `;
+                gameGrid.insertAdjacentHTML('beforeend', newGameHTML);
+
+                // Re-attach event listeners to all buttons (including the new one)
+                attachEventListeners();
+            }
+            
+            // Update the version display in settings
+            document.getElementById('current-version-display').textContent = storedVersion;
+        }
+
+        // --- CORE PAGE LOGIC ---
+
+        // 1. Check for Update and Display Button
+        if (isUpdateAvailable) {
+            document.getElementById('update-button').style.display = 'block';
+            document.getElementById('current-version-display').textContent = storedVersion; // Show old version in settings
+        } else {
+            // If up to date, display the new content
+            displayNewContent(CURRENT_VERSION);
+        }
+
+        // 2. Random Subtitle Message
         const SUBTITLES = [
             "hi", 
             "6 7", 
@@ -546,10 +638,8 @@
         const randomIndex = Math.floor(Math.random() * SUBTITLES.length);
         subtitleElement.textContent = SUBTITLES[randomIndex];
 
-        
-        // ----------------------------------------------------------------------
-        // 2. Particle Effect
-        // ----------------------------------------------------------------------
+
+        // 3. Particle Effect (from previous version)
         const starsContainer = document.querySelector('.stars');
         const numStars = 70; 
 
@@ -564,9 +654,7 @@
             starsContainer.appendChild(star);
         }
 
-        // ----------------------------------------------------------------------
-        // 3. Modal Logic (Open/Close)
-        // ----------------------------------------------------------------------
+        // 4. Modal Logic (Open/Close)
         function openModal(modalId) {
             document.getElementById(modalId).classList.add('active');
             document.body.style.overflow = 'hidden';
@@ -577,30 +665,72 @@
             document.body.style.overflow = '';
         }
 
-        // Attach event listeners to Game Buttons and Menu Links
-        document.querySelectorAll('.game-button, .menu-link').forEach(button => {
-            button.addEventListener('click', function(e) {
-                // If the button has an external link, let the browser handle it (open in new tab)
-                if (this.classList.contains('external')) {
-                    return; 
-                }
-                // Otherwise, open the modal
-                e.preventDefault();
-                const modalId = this.getAttribute('data-modal');
-                if (modalId) {
-                    openModal(modalId);
-                }
+        // 5. Attach event listeners to all buttons/links
+        function attachEventListeners() {
+            document.querySelectorAll('.game-button, .menu-link').forEach(button => {
+                // Remove existing listener to prevent duplicates on reload/new content
+                button.removeEventListener('click', handleButtonClick);
+                button.addEventListener('click', handleButtonClick);
             });
-        });
+            
+            // Re-attach bookmarklet copy handlers (important for the new content)
+            document.querySelectorAll('.bookmark-link').forEach(codeElement => {
+                codeElement.removeEventListener('click', handleBookmarkCopy);
+                codeElement.addEventListener('click', handleBookmarkCopy);
+            });
+        }
         
-        // Settings Toggle
+        function handleButtonClick(e) {
+             // If the button has an external link, let the browser handle it (open in new tab)
+            if (this.classList.contains('external')) {
+                return; 
+            }
+            // Otherwise, open the modal
+            e.preventDefault();
+            const modalId = this.getAttribute('data-modal');
+            if (modalId) {
+                openModal(modalId);
+            }
+        }
+        
+        function handleBookmarkCopy() {
+            let codeToCopy = this.textContent.trim();
+                
+            if (!codeToCopy.startsWith('javascript:')) {
+                codeToCopy = 'javascript:' + codeToCopy;
+            }
+            
+            navigator.clipboard.writeText(codeToCopy).then(() => {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed; top: 20px; right: 20px; background-color: #4CAF50; 
+                    color: white; padding: 10px 20px; border-radius: 8px; z-index: 1000;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: opacity 0.5s;
+                `;
+                notification.textContent = 'Code Copied!';
+                document.body.appendChild(notification);
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    setTimeout(() => document.body.removeChild(notification), 500);
+                }, 2000);
+                
+            }).catch(err => {
+                console.error('Could not copy text: ', err);
+                const message = 'Failed to copy code. Please manually select and copy the text.';
+                console.log(message);
+            });
+        }
+        
+        // Initial call to attach listeners
+        attachEventListeners();
+
+
+        // 6. Settings Toggle
         function toggleParticles(enabled) {
             starsContainer.style.display = enabled ? 'block' : 'none';
         }
 
-        // ----------------------------------------------------------------------
-        // 4. Draggable Modal (Bookmarklet only)
-        // ----------------------------------------------------------------------
+        // 7. Draggable Modal (Bookmarklet only - copied from previous version)
         var dragItem = document.getElementById("bookmarkletWindow");
         var container = document.getElementById("bookmarkletHeader");
 
@@ -612,102 +742,60 @@
         var xOffset = 0;
         var yOffset = 0;
 
-        container.addEventListener("touchstart", dragStart, false);
-        container.addEventListener("touchend", dragEnd, false);
-        container.addEventListener("touchmove", drag, false);
+        // Use a flag to check if the movable modal elements exist before attaching listeners
+        if (dragItem && container) {
+            container.addEventListener("touchstart", dragStart, false);
+            container.addEventListener("touchend", dragEnd, false);
+            container.addEventListener("touchmove", drag, false);
 
-        container.addEventListener("mousedown", dragStart, false);
-        container.addEventListener("mouseup", dragEnd, false);
-        container.addEventListener("mousemove", drag, false);
+            container.addEventListener("mousedown", dragStart, false);
+            container.addEventListener("mouseup", dragEnd, false);
+            container.addEventListener("mousemove", drag, false);
 
-        function dragStart(e) {
-            if (e.type === "touchstart") {
-                initialX = e.touches[0].clientX - xOffset;
-                initialY = e.touches[0].clientY - yOffset;
-            } else {
-                initialX = e.clientX - xOffset;
-                initialY = e.clientY - yOffset;
-            }
-
-            if (e.target === container || e.target.closest('#bookmarkletHeader') === container) {
-                active = true;
-            }
-        }
-
-        function dragEnd(e) {
-            initialX = currentX;
-            initialY = currentY;
-
-            active = false;
-        }
-
-        function drag(e) {
-            if (active) {
-                e.preventDefault();
-                
-                if (e.type === "touchmove") {
-                    currentX = e.touches[0].clientX - initialX;
-                    currentY = e.touches[0].clientY - initialY;
+            function dragStart(e) {
+                if (e.type === "touchstart") {
+                    initialX = e.touches[0].clientX - xOffset;
+                    initialY = e.touches[0].clientY - yOffset;
                 } else {
-                    currentX = e.clientX - initialX;
-                    currentY = e.clientY - initialY;
+                    initialX = e.clientX - xOffset;
+                    initialY = e.clientY - yOffset;
                 }
 
-                xOffset = currentX;
-                yOffset = currentY;
-
-                setTranslate(currentX, currentY, dragItem);
+                if (e.target === container || e.target.closest('#bookmarkletHeader') === container) {
+                    active = true;
+                }
             }
-        }
 
-        function setTranslate(xPos, yPos, el) {
-            el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+            function dragEnd(e) {
+                initialX = currentX;
+                initialY = currentY;
+                active = false;
+            }
+
+            function drag(e) {
+                if (active) {
+                    e.preventDefault();
+                    
+                    if (e.type === "touchmove") {
+                        currentX = e.touches[0].clientX - initialX;
+                        currentY = e.touches[0].clientY - initialY;
+                    } else {
+                        currentX = e.clientX - initialX;
+                        currentY = e.clientY - initialY;
+                    }
+
+                    xOffset = currentX;
+                    yOffset = currentY;
+
+                    setTranslate(currentX, currentY, dragItem);
+                }
+            }
+
+            function setTranslate(xPos, yPos, el) {
+                el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
+            }
         }
         
-        // ----------------------------------------------------------------------
-        // 5. Bookmarklet Copy Functionality
-        // ----------------------------------------------------------------------
-        document.querySelectorAll('.bookmark-link').forEach(codeElement => {
-            codeElement.addEventListener('click', function() {
-                // Ensure the javascript: prefix is included for the user to copy
-                let codeToCopy = this.textContent.trim();
-                
-                if (!codeToCopy.startsWith('javascript:')) {
-                    codeToCopy = 'javascript:' + codeToCopy;
-                }
-                
-                navigator.clipboard.writeText(codeToCopy).then(() => {
-                    // Using custom alert style rather than window.alert
-                    const message = 'Bookmarklet code copied! Now create a new bookmark and paste the code into the URL field.';
-                    console.log(message); 
-                    // To maintain compliance, use console.log or a simple custom div display instead of window.alert()
-                    
-                    // Simple, non-intrusive notification:
-                    const notification = document.createElement('div');
-                    notification.style.cssText = `
-                        position: fixed; top: 20px; right: 20px; background-color: #4CAF50; 
-                        color: white; padding: 10px 20px; border-radius: 8px; z-index: 1000;
-                        box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: opacity 0.5s;
-                    `;
-                    notification.textContent = 'Code Copied!';
-                    document.body.appendChild(notification);
-                    setTimeout(() => {
-                        notification.style.opacity = '0';
-                        setTimeout(() => document.body.removeChild(notification), 500);
-                    }, 2000);
-                    
-                }).catch(err => {
-                    console.error('Could not copy text: ', err);
-                    // Fallback non-alert message for copy failure
-                    const message = 'Failed to copy code. Please manually select and copy the text.';
-                    console.log(message);
-                });
-            });
-        });
-
     </script>
 </body>
 </html>
-
-
-The page now opens with the title **"gamesunblocked67"**, features a randomly chosen subtitle message on every load, and has the menu links (`News`, `Bookmarklets`, `Links`, `Settings`) positioned neatly at the top. I also added a subtle success notification for when you copy a bookmarklet link, since standard `alert()` is not allowed.
