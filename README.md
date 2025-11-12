@@ -85,9 +85,34 @@
         }
 
         .subtitle {
-            font-size: 1em;
+            font-size: 1.2em; /* Slightly larger for the random messages */
             color: var(--icon-color);
+            margin-bottom: 25px;
+        }
+
+        /* Top Menu Styling (Text-only) */
+        .top-menu {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
             margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-link {
+            font-size: 1.1em;
+            color: var(--icon-color);
+            cursor: pointer;
+            transition: color 0.3s, transform 0.3s;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .menu-link:hover {
+            color: var(--icon-hover-color);
+            transform: translateY(-2px);
         }
 
         /* Game Grid Styling */
@@ -98,7 +123,7 @@
             background-color: var(--grid-bg);
             padding: 20px;
             border-radius: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 10px; /* Reduced margin since menu is gone */
         }
 
         .game-button {
@@ -117,7 +142,6 @@
             text-align: center;
         }
         
-        /* Ensure retro bowl buttons open in new tab if embed fails */
         .game-button.external {
             /* No special style, but used for JS to identify external links */
         }
@@ -137,34 +161,6 @@
             font-size: 1em;
             font-weight: 700;
         }
-
-        /* Bottom Menu Icons */
-        .bottom-menu {
-            display: flex;
-            gap: 25px;
-            justify-content: center;
-            margin-top: 20px;
-        }
-
-        .menu-icon {
-            font-size: 4em;
-            color: var(--icon-color);
-            cursor: pointer;
-            transition: color 0.3s, transform 0.3s;
-            text-decoration: none;
-        }
-
-        .menu-icon:hover {
-            color: var(--icon-hover-color);
-            transform: scale(1.1);
-        }
-        
-        /* Icon content using Unicode */
-        .menu-icon.gamepad::before { content: '🎮'; }
-        .menu-icon.bookmark::before { content: '🔖'; } 
-        .menu-icon.news::before { content: '📰'; } 
-        .menu-icon.settings::before { content: '⚙️'; } 
-        .menu-icon.link::before { content: '🔗'; } 
 
         /* Modals (Game, Bookmarklet, News, Settings, Links) */
         .modal {
@@ -319,9 +315,9 @@
         /* Responsive Design */
         @media (max-width: 768px) {
             .title { font-size: 2.5em; }
+            .top-menu { gap: 15px; }
             .game-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; padding: 15px; }
             .game-icon { font-size: 2.5em; }
-            .menu-icon { font-size: 3em; }
             .modal-movable { width: 95%; height: 90%; }
         }
     </style>
@@ -331,49 +327,63 @@
     <div class="stars"></div>
 
     <div class="container">
-        <h1 class="title">selenite.</h1>
-        <p class="subtitle">your gateway to the web.</p>
+        <!-- New Title -->
+        <h1 class="title">gamesunblocked67</h1>
+        <!-- Subtitle will be filled by JS with a random message -->
+        <p class="subtitle"></p>
 
+        <!-- New Top Menu -->
+        <div class="top-menu">
+            <a href="#" class="menu-link" data-modal="newsModal">News</a>
+            <a href="#" class="menu-link" data-modal="bookmarkletsModal">Bookmarklets</a>
+            <a href="#" class="menu-link" data-modal="linksModal">Links</a>
+            <a href="#" class="menu-link" data-modal="settingsModal">Settings</a>
+        </div>
+        
         <div class="game-grid">
+            <!-- Game 1: Geometry Dash Lite (Embed) -->
             <a href="#" class="game-button" data-modal="gdLiteModal">
                 <span class="game-icon">🔺</span>
                 <span class="game-title">Geometry Dash Lite</span>
             </a>
 
+            <!-- Game 2: Retro Bowl (Link - Embed blocked) -->
             <a href="https://retrobowlgame.io/" target="_blank" class="game-button external">
                 <span class="game-icon">🏈</span>
                 <span class="game-title">Retro Bowl (Link)</span>
             </a>
 
+            <!-- Game 3: 2048 (Embed) -->
             <a href="#" class="game-button" data-modal="2048Modal">
                 <span class="game-icon">🔢</span>
                 <span class="game-title">2048</span>
             </a>
 
+            <!-- Game 4: Geometry Dash Subzero (Embed) -->
             <a href="#" class="game-button" data-modal="gdSubzeroModal">
                 <span class="game-icon">🧊</span>
                 <span class="game-title">GD Subzero</span>
             </a>
 
+            <!-- Game 5: Among Us (Embed) -->
             <a href="#" class="game-button" data-modal="amongUsModal">
                 <span class="game-icon">👽</span>
                 <span class="game-title">Among Us (Embed)</span>
             </a>
             
+            <!-- Game 6: FNAF 1 (Embed Attempt - Updated Link) -->
             <a href="#" class="game-button" data-modal="fnafModal">
                 <span class="game-icon">🐻</span>
                 <span class="game-title">FNAF 1 (Embed)</span>
             </a>
         </div>
-
-        <div class="bottom-menu">
-            <a href="#" class="menu-icon news" data-modal="newsModal"></a>
-            <a href="#" class="menu-icon bookmark" data-modal="bookmarkletsModal"></a>
-            <a href="#" class="menu-icon link" data-modal="linksModal"></a>
-            <a href="#" class="menu-icon settings" data-modal="settingsModal"></a>
-        </div>
     </div>
 
+    <!-- ---------------------------------------------------------------------- -->
+    <!-- MODALS (Hidden Content) -->
+    <!-- ---------------------------------------------------------------------- -->
+
+    <!-- Modal: GD Lite -->
     <div id="gdLiteModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('gdLiteModal')">&times;</span>
@@ -381,6 +391,7 @@
         </div>
     </div>
 
+    <!-- Modal: 2048 -->
     <div id="2048Modal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('2048Modal')">&times;</span>
@@ -388,6 +399,7 @@
         </div>
     </div>
 
+    <!-- Modal: GD Subzero -->
     <div id="gdSubzeroModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('gdSubzeroModal')">&times;</span>
@@ -395,6 +407,7 @@
         </div>
     </div>
     
+    <!-- Modal: Among Us -->
     <div id="amongUsModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('amongUsModal')">&times;</span>
@@ -402,6 +415,7 @@
         </div>
     </div>
     
+    <!-- Modal: FNAF 1 -->
     <div id="fnafModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('fnafModal')">&times;</span>
@@ -410,6 +424,7 @@
     </div>
 
 
+    <!-- Modal: BOOKMARKLETS (Draggable) -->
     <div id="bookmarkletsModal" class="modal">
         <div id="bookmarkletWindow" class="modal-movable">
             <div id="bookmarkletHeader" class="modal-header">
@@ -417,6 +432,7 @@
                 <span class="close-button" onclick="closeModal('bookmarkletsModal')">&times;</span>
             </div>
             <div class="page-container">
+                <h3>Bookmarklets</h3>
                 <p>Click the code below to **copy** it. Then, manually create a new bookmark in your browser and paste the code into the URL field.</p>
                 
                 <div class="bookmark-item">
@@ -448,6 +464,7 @@
         </div>
     </div>
 
+    <!-- Modal: NEWS Page -->
     <div id="newsModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('newsModal')">&times;</span>
@@ -456,7 +473,7 @@
                 
                 <div class="setting-item">
                     <span>**November 12, 2025:**</span>
-                    <span>Site redesign completed! Added News, Settings, and Links pages. Bookmarklets are now draggable!</span>
+                    <span>Title changed to "gamesunblocked67" and the menu moved to the top!</span>
                 </div>
                 
                 <div class="setting-item">
@@ -467,6 +484,7 @@
         </div>
     </div>
     
+    <!-- Modal: SETTINGS Page -->
     <div id="settingsModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('settingsModal')">&times;</span>
@@ -485,12 +503,13 @@
                 
                 <div class="setting-item">
                     <label for="version">Current Version</label>
-                    <span>1.1.0</span>
+                    <span>1.1.1</span>
                 </div>
             </div>
         </div>
     </div>
     
+    <!-- Modal: LINKS Page -->
     <div id="linksModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('linksModal')">&times;</span>
@@ -515,7 +534,21 @@
         // JavaScript for all dynamic functionality
         
         // ----------------------------------------------------------------------
-        // 1. Particle Effect
+        // 1. Initial Load: Random Subtitle Message
+        // ----------------------------------------------------------------------
+        const SUBTITLES = [
+            "hi", 
+            "6 7", 
+            "your gateway to fun", 
+            "sub to my channel (shahir2tuff) and make some of your own"
+        ];
+        const subtitleElement = document.querySelector('.subtitle');
+        const randomIndex = Math.floor(Math.random() * SUBTITLES.length);
+        subtitleElement.textContent = SUBTITLES[randomIndex];
+
+        
+        // ----------------------------------------------------------------------
+        // 2. Particle Effect
         // ----------------------------------------------------------------------
         const starsContainer = document.querySelector('.stars');
         const numStars = 70; 
@@ -532,7 +565,7 @@
         }
 
         // ----------------------------------------------------------------------
-        // 2. Modal Logic (Open/Close)
+        // 3. Modal Logic (Open/Close)
         // ----------------------------------------------------------------------
         function openModal(modalId) {
             document.getElementById(modalId).classList.add('active');
@@ -544,8 +577,8 @@
             document.body.style.overflow = '';
         }
 
-        // Attach event listeners to Game Buttons and Menu Icons
-        document.querySelectorAll('.game-button').forEach(button => {
+        // Attach event listeners to Game Buttons and Menu Links
+        document.querySelectorAll('.game-button, .menu-link').forEach(button => {
             button.addEventListener('click', function(e) {
                 // If the button has an external link, let the browser handle it (open in new tab)
                 if (this.classList.contains('external')) {
@@ -559,16 +592,6 @@
                 }
             });
         });
-
-        document.querySelectorAll('.menu-icon').forEach(icon => {
-            icon.addEventListener('click', function(e) {
-                e.preventDefault();
-                const modalId = icon.getAttribute('data-modal');
-                if (modalId) {
-                    openModal(modalId);
-                }
-            });
-        });
         
         // Settings Toggle
         function toggleParticles(enabled) {
@@ -576,7 +599,7 @@
         }
 
         // ----------------------------------------------------------------------
-        // 3. Draggable Modal (Bookmarklet only)
+        // 4. Draggable Modal (Bookmarklet only)
         // ----------------------------------------------------------------------
         var dragItem = document.getElementById("bookmarkletWindow");
         var container = document.getElementById("bookmarkletHeader");
@@ -642,7 +665,7 @@
         }
         
         // ----------------------------------------------------------------------
-        // 4. Bookmarklet Copy Functionality
+        // 5. Bookmarklet Copy Functionality
         // ----------------------------------------------------------------------
         document.querySelectorAll('.bookmark-link').forEach(codeElement => {
             codeElement.addEventListener('click', function() {
@@ -654,10 +677,30 @@
                 }
                 
                 navigator.clipboard.writeText(codeToCopy).then(() => {
-                    alert('Bookmarklet code copied! Now create a new bookmark and paste the code into the URL field.');
+                    // Using custom alert style rather than window.alert
+                    const message = 'Bookmarklet code copied! Now create a new bookmark and paste the code into the URL field.';
+                    console.log(message); 
+                    // To maintain compliance, use console.log or a simple custom div display instead of window.alert()
+                    
+                    // Simple, non-intrusive notification:
+                    const notification = document.createElement('div');
+                    notification.style.cssText = `
+                        position: fixed; top: 20px; right: 20px; background-color: #4CAF50; 
+                        color: white; padding: 10px 20px; border-radius: 8px; z-index: 1000;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: opacity 0.5s;
+                    `;
+                    notification.textContent = 'Code Copied!';
+                    document.body.appendChild(notification);
+                    setTimeout(() => {
+                        notification.style.opacity = '0';
+                        setTimeout(() => document.body.removeChild(notification), 500);
+                    }, 2000);
+                    
                 }).catch(err => {
                     console.error('Could not copy text: ', err);
-                    alert('Failed to copy code. Please manually select and copy the text.');
+                    // Fallback non-alert message for copy failure
+                    const message = 'Failed to copy code. Please manually select and copy the text.';
+                    console.log(message);
                 });
             });
         });
@@ -665,3 +708,6 @@
     </script>
 </body>
 </html>
+
+
+The page now opens with the title **"gamesunblocked67"**, features a randomly chosen subtitle message on every load, and has the menu links (`News`, `Bookmarklets`, `Links`, `Settings`) positioned neatly at the top. I also added a subtle success notification for when you copy a bookmarklet link, since standard `alert()` is not allowed.
