@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -22,6 +23,7 @@
             --header-bg: #222222; /* Header for draggable modals */
             --update-color: #ff5722; /* Deep Orange for update button */
             --downgrade-color: #f44336; /* Red for downgrade button */
+            --new-feature-color: #00bcd4; /* Cyan for new features */
         }
 
         body {
@@ -318,7 +320,7 @@
         }
         
         .setting-item strong {
-            color: var(--update-color);
+            color: var(--new-feature-color);
         }
         
         .upcoming-update {
@@ -406,6 +408,23 @@
             text-decoration: underline;
         }
 
+        /* History Flooder Button */
+        #history-flood-button {
+            background-color: var(--new-feature-color);
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        
+        #history-flood-button:hover {
+            background-color: #0097a7;
+        }
+
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .title { font-size: 2.5em; }
@@ -423,7 +442,7 @@
 
     <div id="update-button-container">
         <button id="update-button" onclick="initiateUpdate()">
-            Update to v1.2.0
+            Update to v1.3.0
         </button>
     </div>
 
@@ -473,7 +492,7 @@
 
     <div id="updateProgressModal" class="modal">
         <div class="modal-content-update">
-            <h3 id="progress-title">Downloading Update v1.2.0...</h3>
+            <h3 id="progress-title">Downloading Update v1.3.0...</h3>
             <p id="update-message">Preparing files...</p>
             <div class="update-bar-container">
                 <div id="update-progress-bar"></div>
@@ -487,35 +506,30 @@
             <iframe class="game-iframe" src="https://selenite.cc/resources/semag/gdlite/index.html" allowfullscreen></iframe>
         </div>
     </div>
-
     <div id="2048Modal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('2048Modal')">&times;</span>
             <iframe class="game-iframe" src="https://selenite.cc/resources/semag/2048/index.html" allowfullscreen></iframe>
         </div>
     </div>
-
     <div id="gdSubzeroModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('gdSubzeroModal')">&times;</span>
             <iframe class="game-iframe" src="https://geometry-lessons.github.io/geometry-dash-subzero.html" allowfullscreen></iframe>
         </div>
     </div>
-    
     <div id="amongUsModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('amongUsModal')">&times;</span>
             <iframe class="game-iframe" src="https://selenite.cc/resources/semag/amongus/index.html" allowfullscreen></iframe>
         </div>
     </div>
-    
     <div id="fnafModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('fnafModal')">&times;</span>
             <iframe class="game-iframe" src="https://selenite.cc/resources/semag/fnaf/index.html" allowfullscreen></iframe>
         </div>
     </div>
-
     <div id="clickerModal" class="modal">
         <div class="modal-content-game">
             <span class="close-button" onclick="closeModal('clickerModal')">&times;</span>
@@ -535,6 +549,16 @@
                 <p>Click the code below to **copy** it. Then, manually create a new bookmark in your browser and paste the code into the URL field.</p>
                 
                 <div class="bookmark-item">
+                    <strong>Cloaker (Change Title/Icon) <span style="color: var(--new-feature-color);">(New)</span></strong>
+                    <code class="bookmark-link">javascript:document.title='About: Blank';var link=document.querySelector("link[rel*='icon']");if(link){link.href='data:image/x-icon;base64,AAABAAEAEBAAAAEACABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';}else{var link=document.createElement('link');link.rel='shortcut icon';link.href='data:image/x-icon;base64,AAABAAEAEBAAAAEACABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';document.getElementsByTagName('head')[0].appendChild(link);}void(0)</code>
+                </div>
+
+                <div class="bookmark-item">
+                    <strong>History Flooder (Adds 100 fake entries) <span style="color: var(--new-feature-color);">(New)</span></strong>
+                    <code class="bookmark-link">javascript:for(var i=0;i<100;i++){history.pushState(0,0,'/fake-history-entry-'+i);}alert('100 fake history entries added. Your real history is now harder to find.');void(0)</code>
+                </div>
+
+                <div class="bookmark-item">
                     <strong>Edit Any Page (Design Mode)</strong>
                     <code class="bookmark-link">javascript:(function(){document.body.contentEditable='true'; document.designMode='on'; void(0);})();</code>
                 </div>
@@ -542,11 +566,6 @@
                 <div class="bookmark-item">
                     <strong>Dev Console (Simple Alert)</strong>
                     <code class="bookmark-link">javascript:alert('Developer console access is typically browser-specific (F12). This is a simple cookie alert.');alert(document.cookie);</code>
-                </div>
-
-                <div class="bookmark-item">
-                    <strong>Tampermonkey (Search Prompt)</strong>
-                    <code class="bookmark-link">javascript:window.open('https://www.google.com/search?q=tampermonkey+bookmarklet+installer', '_blank');</code>
                 </div>
 
                 <div class="bookmark-item">
@@ -570,8 +589,13 @@
                 <h3>✨ Updates & Changelog</h3>
                 
                 <div class="setting-item">
-                    <strong>Version 1.2.0 (Latest)</strong>
-                    <span>**NEW!** Added a Clicker Game. Implemented update notification system. Fixed scrolling and grid issues.</span>
+                    <strong>Version 1.3.0 (Latest)</strong>
+                    <span>**MAJOR!** Added History Flooder tool in settings. New Cloaker and History Flooder bookmarklets added.</span>
+                </div>
+                
+                <div class="setting-item">
+                    <strong>Version 1.2.0</strong>
+                    <span>Added a Clicker Game. Implemented full update/downgrade system. Fixed scrolling and grid issues.</span>
                 </div>
 
                 <div class="setting-item">
@@ -579,20 +603,8 @@
                     <span>Title changed to "gamesunblocked67". Menu moved to the top. Random welcome messages implemented.</span>
                 </div>
                 
-                <div class="setting-item">
-                    <strong>Version 1.1.0</strong>
-                    <span>Initial release. Added GD Lite, Retro Bowl, 2048, GD Subzero, Among Us, and FNAF 1.</span>
-                </div>
-                
-                <div class="upcoming-update">
-                    <h4>🚀 Upcoming Update: v1.3.0</h4>
-                    <p style="margin-top: 5px; color: #ccc;">
-                        **Bookmarklet Overhaul!** We are adding new utility bookmarklets, including a new **Cloaker** feature and a **Theme Switcher** bookmarklet for quick style changes.
-                    </p>
-                </div>
-                
                 <button id="downgrade-in-updates" onclick="initiateDowngrade()">
-                    <span id="downgrade-text">Downgrade to v1.1.1</span>
+                    <span id="downgrade-text">Downgrade to v1.2.0</span>
                 </button>
 
                 <div class="setting-item">
@@ -616,18 +628,25 @@
                 </div>
                 
                 <div class="setting-item">
+                    <label>History Flooder (Instant)</label>
+                    <button id="history-flood-button" onclick="floodHistory(100)">
+                        Flood History (100 Entries)
+                    </button>
+                </div>
+                
+                <div class="setting-item">
                     <label for="theme">Switch to Light Mode (Conceptual)</label>
                     <input type="checkbox" id="theme" onchange="alert('Light mode feature coming soon! (Conceptual only)');">
                 </div>
                 
                 <div class="setting-item">
                     <label for="version">Current Version</label>
-                    <span id="current-version-display">1.1.1</span>
+                    <span id="current-version-display">1.3.0</span>
                 </div>
                 
                 <div class="setting-item" style="color: var(--update-color);">
                     <label>Update System Check</label>
-                    <span>Target: 1.2.0</span>
+                    <span>Target: 1.3.0</span>
                 </div>
             </div>
         </div>
@@ -657,19 +676,50 @@
         // JavaScript for all dynamic functionality
         
         // --- CONFIGURATION & INITIALIZATION ---
-        const CURRENT_VERSION = "1.2.0"; // The actual version of the code in this file
-        const OLD_VERSION = "1.1.1";     // The version the update is from
+        const CURRENT_VERSION = "1.3.0"; // The actual version of the code in this file
+        const PREVIOUS_VERSION = "1.2.0";     // The version the update is from
         const LOCAL_STORAGE_KEY = 'gamesunblocked_version';
 
         // 1. Check/Set Local Version
         let storedVersion = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (!storedVersion) {
             // First time loading, set the initial version (or the starting version for the update)
-            storedVersion = OLD_VERSION;
+            storedVersion = PREVIOUS_VERSION; // Start at the previous version to prompt update
             localStorage.setItem(LOCAL_STORAGE_KEY, storedVersion);
         }
         
-        const isUpdateAvailable = (storedVersion < CURRENT_VERSION);
+        // Helper function for version comparison (handles X.Y.Z)
+        function compareVersions(v1, v2) {
+            const parts1 = v1.split('.').map(Number);
+            const parts2 = v2.split('.').map(Number);
+            for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+                const num1 = parts1[i] || 0;
+                const num2 = parts2[i] || 0;
+                if (num1 > num2) return 1;
+                if (num1 < num2) return -1;
+            }
+            return 0;
+        }
+
+        const isUpdateAvailable = (compareVersions(CURRENT_VERSION, storedVersion) === 1);
+        
+        // --- FEATURE LOGIC ---
+        
+        function floodHistory(count) {
+            // Only runs if the feature is present (i.e., v1.3.0 or higher)
+            if (compareVersions(storedVersion, "1.3.0") < 0) return; 
+            
+            for (let i = 0; i < count; i++) {
+                // Use history.pushState to add entries without loading a new page
+                // The URL is arbitrary and can be anything on the current domain
+                history.pushState(null, '', `/temp-history-item-${i}`);
+            }
+            alert(`${count} fake history entries have been added. Your real history is now harder to find.`);
+            
+            // Push one final state to revert the current URL back to the base if desired
+            history.pushState(null, '', window.location.pathname);
+        }
+
 
         // --- UPDATE/DOWNGRADE SYSTEM LOGIC ---
         
@@ -697,11 +747,11 @@
                 progressBar.style.width = `${progress}%`;
 
                 if (progress <= 30) {
-                    updateMessage.textContent = isDowngrade ? 'Removing v1.2.0 features...' : 'Downloading core files...';
+                    updateMessage.textContent = isDowngrade ? 'Reversing changes...' : 'Downloading new files...';
                 } else if (progress <= 70) {
-                    updateMessage.textContent = isDowngrade ? 'Restoring v1.1.1 assets...' : 'Installing new game assets...';
+                    updateMessage.textContent = isDowngrade ? 'Restoring previous version state...' : 'Installing core features...';
                 } else if (progress <= 95) {
-                    updateMessage.textContent = isDowngrade ? 'Cleaning up old files...' : 'Finalizing configuration...';
+                    updateMessage.textContent = isDowngrade ? 'Cleaning up new version files...' : 'Finalizing configuration...';
                 } else {
                     // Simulation complete
                     clearInterval(updateInterval);
@@ -724,42 +774,49 @@
         }
         
         function initiateDowngrade() {
-             // Hide downgrade button during process (optional)
+             // Hide downgrade button during process
              document.getElementById('downgrade-in-updates').style.display = 'none';
-             runSimulation(OLD_VERSION, true);
+             // Downgrade to the version immediately preceding the current stored version
+             const targetVersion = (storedVersion === CURRENT_VERSION) ? PREVIOUS_VERSION : '1.1.1';
+             runSimulation(targetVersion, true);
         }
 
 
-        function displayNewContent(version) {
+        function displayContentByVersion(version) {
             const gameGrid = document.getElementById('game-grid');
+            
+            // Game V1.2.0: Clicker Game
+            const clickerHTML = `
+                <a href="#" class="game-button" data-modal="clickerModal">
+                    <span class="game-icon">💰</span>
+                    <span class="game-title">Clicker Game</span>
+                </a>
+            `;
+            const clickerExists = gameGrid.querySelector('[data-modal="clickerModal"]');
 
-            if (version === CURRENT_VERSION) {
-                // If on the current version (v1.2.0), add the new content
-                const newGameHTML = `
-                    <a href="#" class="game-button" data-modal="clickerModal">
-                        <span class="game-icon">💰</span>
-                        <span class="game-title">Clicker Game (NEW!)</span>
-                    </a>
-                `;
-                // Check if the game is already there to prevent duplicates on manual reloads
-                if (!gameGrid.querySelector('[data-modal="clickerModal"]')) {
-                    gameGrid.insertAdjacentHTML('beforeend', newGameHTML);
-                }
-                
-                // Hide downgrade button if already on the oldest version
-                document.getElementById('downgrade-in-updates').style.display = 'block';
-                document.getElementById('downgrade-text').textContent = 'Downgrade to v1.1.1 (Current)';
-
-            } else if (version === OLD_VERSION) {
-                // If downgraded back to v1.1.1, ensure the new game is REMOVED
-                const clickerButton = gameGrid.querySelector('[data-modal="clickerModal"]');
-                if (clickerButton) {
-                    clickerButton.remove();
-                }
-                 // Update downgrade button text (since it's not the current version)
-                 document.getElementById('downgrade-in-updates').style.display = 'none'; // Hide it if you can't downgrade further
+            if (compareVersions(version, "1.2.0") >= 0) {
+                if (!clickerExists) gameGrid.insertAdjacentHTML('beforeend', clickerHTML);
+            } else {
+                if (clickerExists) clickerExists.remove();
             }
             
+            // Update Downgrade Button State
+            const downgradeButton = document.getElementById('downgrade-in-updates');
+            if (downgradeButton) {
+                 if (version === CURRENT_VERSION) {
+                    downgradeButton.style.display = 'block';
+                    document.getElementById('downgrade-text').textContent = `Downgrade to v${PREVIOUS_VERSION}`;
+                } else if (version === PREVIOUS_VERSION) {
+                    downgradeButton.style.display = 'block';
+                    document.getElementById('downgrade-text').textContent = 'Downgrade to v1.1.1';
+                } else if (version === '1.1.1') {
+                    downgradeButton.style.display = 'none';
+                } else {
+                     downgradeButton.style.display = 'none';
+                }
+            }
+
+
             // Update the version display in settings
             document.getElementById('current-version-display').textContent = storedVersion;
 
@@ -773,24 +830,11 @@
         if (isUpdateAvailable) {
             document.getElementById('update-button').style.display = 'block';
             document.getElementById('current-version-display').textContent = storedVersion; // Show old version in settings
-            document.getElementById('downgrade-in-updates').style.display = 'none'; // Hide downgrade option if an update is available
         } else {
-            // If up to date, display the new content (v1.2.0)
-            displayNewContent(CURRENT_VERSION);
+            // If up to date, display the content based on the stored version
+            displayContentByVersion(storedVersion);
         }
         
-        // If the stored version is the old one (v1.1.1), hide the downgrade button and show update button
-        if (storedVersion === OLD_VERSION && !isUpdateAvailable) {
-            document.getElementById('downgrade-in-updates').style.display = 'none';
-        }
-        
-        // If the stored version is the current one (v1.2.0), show the downgrade button and hide update button
-        if (storedVersion === CURRENT_VERSION) {
-            document.getElementById('downgrade-in-updates').style.display = 'block';
-            document.getElementById('downgrade-text').textContent = 'Downgrade to v1.1.1';
-        }
-
-
         // 2. Random Subtitle Message
         const SUBTITLES = [
             "hi", 
@@ -803,7 +847,7 @@
         subtitleElement.textContent = SUBTITLES[randomIndex];
 
 
-        // 3. Particle Effect (from previous version)
+        // 3. Particle Effect 
         const starsContainer = document.querySelector('.stars');
         const numStars = 70; 
 
@@ -894,7 +938,7 @@
             starsContainer.style.display = enabled ? 'block' : 'none';
         }
 
-        // 7. Draggable Modal (Bookmarklet only - copied from previous version)
+        // 7. Draggable Modal (Bookmarklet only - from previous version)
         var dragItem = document.getElementById("bookmarkletWindow");
         var container = document.getElementById("bookmarkletHeader");
 
@@ -906,7 +950,6 @@
         var xOffset = 0;
         var yOffset = 0;
 
-        // Use a flag to check if the movable modal elements exist before attaching listeners
         if (dragItem && container) {
             container.addEventListener("touchstart", dragStart, false);
             container.addEventListener("touchend", dragEnd, false);
