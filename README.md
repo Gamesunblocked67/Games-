@@ -92,7 +92,7 @@ a{color:var(--accent)}
     <div class="choice-row">
       <div class="choice" onclick="enterMode('study')">
         <h3>Study Mode</h3>
-        <div class="muted">Tools & practice tailored for 7th grade — Oak Middle School (Shrewsbury, MA)</div>
+        <div class="muted">Tools & practice tailored for 7th grade</div>
       </div>
       <div class="choice" onclick="enterMode('games')">
         <h3>Games Mode</h3>
