@@ -12,7 +12,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-hub-v7';
@@ -34,13 +34,29 @@
 
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
-                    // Load Settings
-                    const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config');
-                    const snap = await getDoc(docRef);
+                    // 1. Load Public Global Keys (Listener for real-time updates)
+                    const globalConfigRef = doc(db, 'artifacts', appId, 'public_data', 'global_config');
+                    onSnapshot(globalConfigRef, (doc) => {
+                        if (doc.exists()) {
+                            const data = doc.data();
+                            if (data.keys) {
+                                window.appSettings.keys = data.keys;
+                                console.log("Global API Keys Loaded");
+                                // Update UI if Settings panel is open
+                                const geminiInput = document.getElementById('gemini-key');
+                                const openaiInput = document.getElementById('openai-key');
+                                if(geminiInput && window.ownerUnlocked) geminiInput.value = data.keys.gemini || '';
+                                if(openaiInput && window.ownerUnlocked) openaiInput.value = data.keys.openai || '';
+                            }
+                        }
+                    });
+
+                    // 2. Load User Private Settings (Theme)
+                    const userConfigRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'config');
+                    const snap = await getDoc(userConfigRef);
                     if (snap.exists()) {
                         const data = snap.data();
                         if(data.theme) applyTheme(data.theme);
-                        if(data.keys) window.appSettings.keys = data.keys;
                         if(data.provider) window.appSettings.aiProvider = data.provider;
                         updateUiFromSettings();
                     }
@@ -48,15 +64,28 @@
             });
 
             // Save function exposed globally
-            window.saveSettingsToDb = async () => {
+            window.saveSettingsToDb = async (scope) => {
                 if (!auth.currentUser) return;
-                const docRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'settings', 'config');
-                await setDoc(docRef, {
-                    theme: window.appSettings.theme,
-                    keys: window.appSettings.keys,
-                    provider: window.appSettings.aiProvider
-                }, { merge: true });
-                alert("Settings Saved to Cloud!");
+
+                // Save Private Settings (Theme, Provider preference)
+                if (scope === 'local' || scope === 'both') {
+                    const userDocRef = doc(db, 'artifacts', appId, 'users', auth.currentUser.uid, 'settings', 'config');
+                    await setDoc(userDocRef, {
+                        theme: window.appSettings.theme,
+                        provider: window.appSettings.aiProvider
+                    }, { merge: true });
+                }
+
+                // Save Global Keys (Only if Owner Mode is unlocked)
+                if ((scope === 'global' || scope === 'both') && window.ownerUnlocked) {
+                    const globalDocRef = doc(db, 'artifacts', appId, 'public_data', 'global_config');
+                    await setDoc(globalDocRef, {
+                        keys: window.appSettings.keys
+                    }, { merge: true });
+                    alert("Global API Keys Saved for ALL Users!");
+                } else if (scope === 'local') {
+                    alert("User Preferences Saved.");
+                }
             };
         }
     </script>
@@ -67,14 +96,37 @@
         .text-primary { color: var(--primary-color); }
         .border-primary { border-color: var(--primary-color); }
         
-        body { font-family: 'Inter', sans-serif; background-color: #111827; color: #f3f4f6; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        /* Layout Fix: Flex Column with fixed height */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #111827; 
+            color: #f3f4f6; 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+        }
         
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
         ::-webkit-scrollbar-track { background: #1f2937; }
 
-        .tab-content { height: 100%; display: flex; flex-direction: column; }
+        /* The container for tab content takes remaining space and scrolls internally */
+        #content-wrapper {
+            flex-grow: 1;
+            overflow: hidden; /* Prevent wrapper itself from scrolling */
+            position: relative;
+        }
+
+        .tab-content { 
+            height: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            overflow-y: auto; /* Scroll inside the tab */
+            padding-bottom: 2rem;
+        }
+        
         .hidden { display: none !important; }
         
         .resource-link:hover { transform: translateX(5px); }
@@ -84,6 +136,7 @@
 
     <script>
         // --- UI LOGIC ---
+        window.ownerUnlocked = false;
         
         function applyTheme(color) {
             document.documentElement.style.setProperty('--primary-color', color);
@@ -105,19 +158,49 @@
 
         function updateUiFromSettings() {
             document.getElementById('ai-provider-select').value = window.appSettings.aiProvider;
-            document.getElementById('gemini-key').value = window.appSettings.keys.gemini || '';
-            document.getElementById('openai-key').value = window.appSettings.keys.openai || '';
+            // Keys are hidden unless owner mode is on, but we update the object
             document.getElementById('color-picker').value = window.appSettings.theme;
             applyTheme(window.appSettings.theme);
         }
+        
+        function toggleSettings() {
+            const panel = document.getElementById('settings-panel');
+            panel.classList.toggle('hidden');
+        }
+
+        function unlockOwner() {
+            const pass = document.getElementById('owner-pass').value;
+            if (pass === 'owner123') {
+                window.ownerUnlocked = true;
+                document.getElementById('owner-controls').classList.remove('hidden');
+                document.getElementById('owner-lock-msg').classList.add('hidden');
+                
+                // Populate inputs with loaded keys now that it's safe
+                document.getElementById('gemini-key').value = window.appSettings.keys.gemini || '';
+                document.getElementById('openai-key').value = window.appSettings.keys.openai || '';
+            } else {
+                alert('Incorrect password.');
+            }
+        }
 
         function saveLocalSettings() {
-            window.appSettings.keys.gemini = document.getElementById('gemini-key').value;
-            window.appSettings.keys.openai = document.getElementById('openai-key').value;
-            window.appSettings.aiProvider = document.getElementById('ai-provider-select').value;
+            // Update local state
+            if (window.ownerUnlocked) {
+                window.appSettings.keys.gemini = document.getElementById('gemini-key').value;
+                window.appSettings.keys.openai = document.getElementById('openai-key').value;
+            }
+            window.appSettings.aiProvider = document.getElementById('ai-provider-select-settings').value;
             
-            if(window.saveSettingsToDb) window.saveSettingsToDb();
+            // Determine scope
+            const scope = window.ownerUnlocked ? 'both' : 'local';
+
+            if(window.saveSettingsToDb) window.saveSettingsToDb(scope);
             else alert("Settings saved locally (Database not connected).");
+            
+            // Update local UI immediately
+            document.getElementById('ai-provider-select').value = window.appSettings.aiProvider;
+            
+            document.getElementById('settings-panel').classList.add('hidden');
         }
 
         // --- MUSIC PLAYER LOGIC ---
@@ -318,8 +401,21 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
+                    
                     const data = await resp.json();
-                    text = data.candidates[0].content.parts[0].text;
+                    
+                    // FIX: Check for API errors specifically
+                    if (data.error) {
+                        throw new Error(data.error.message);
+                    }
+                    
+                    // FIX: Safely access candidates
+                    if (data.candidates && data.candidates.length > 0) {
+                        text = data.candidates[0].content.parts[0].text;
+                    } else {
+                        text = "Error: No response from AI. (Check Safety Filters or Quota)";
+                    }
+
                 } else if (provider === 'OpenAI') {
                     const resp = await fetch('https://api.openai.com/v1/chat/completions', {
                         method: 'POST',
@@ -327,6 +423,10 @@
                         body: JSON.stringify({ model: "gpt-3.5-turbo", messages: [{role: "user", content: prompt}] })
                     });
                     const data = await resp.json();
+                    
+                    if (data.error) {
+                         throw new Error(data.error.message);
+                    }
                     text = data.choices[0].message.content;
                 }
                 
@@ -345,7 +445,12 @@
             // Reuse the AI function but with specific prompts
             const provider = document.getElementById('ai-provider-select').value;
             const key = window.appSettings.keys[provider.toLowerCase()];
-            if (!key) return alert("No API Key set in Settings!");
+            
+            // FIX: Validation check before running
+            if (!key) {
+                 document.getElementById(type + '-result').innerHTML = '<span class="text-red-400">Error: API Key not set!</span>';
+                 return; 
+            }
 
             const resultDiv = document.getElementById(type + '-result');
             resultDiv.innerHTML = `<span class="text-yellow-400">Generating ${type}...</span>`;
@@ -363,7 +468,15 @@
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     });
                     const data = await resp.json();
-                    text = data.candidates[0].content.parts[0].text;
+                    
+                    if (data.error) throw new Error(data.error.message);
+                    
+                    if (data.candidates && data.candidates.length > 0) {
+                         text = data.candidates[0].content.parts[0].text;
+                    } else {
+                         text = "Error: No response content.";
+                    }
+
                 } else if (provider === 'OpenAI') {
                     const resp = await fetch('https://api.openai.com/v1/chat/completions', {
                         method: 'POST',
@@ -371,6 +484,7 @@
                         body: JSON.stringify({ model: "gpt-3.5-turbo", messages: [{role: "user", content: prompt}] })
                     });
                     const data = await resp.json();
+                    if (data.error) throw new Error(data.error.message);
                     text = data.choices[0].message.content;
                 }
                 
@@ -385,7 +499,8 @@
 </head>
 <body class="p-4 sm:p-6">
 
-    <header class="mb-6 flex justify-between items-center">
+    <!-- Fixed Header -->
+    <header class="mb-4 flex justify-between items-center">
         <div>
             <h1 class="text-3xl font-bold text-white">7th Grade Ultimate Hub</h1>
             <p class="text-gray-400 text-sm">Study. Focus. Achieve.</p>
@@ -407,168 +522,199 @@
                     <input type="color" id="color-picker" class="w-full h-10 rounded cursor-pointer" oninput="applyTheme(this.value)">
                 </div>
                 <div>
-                    <label class="block text-sm text-gray-400">Gemini API Key</label>
-                    <input type="password" id="gemini-key" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+                    <label class="block text-sm text-gray-400 mb-1">Provider Preference</label>
+                    <select id="ai-provider-select-settings" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white" onchange="document.getElementById('ai-provider-select').value = this.value">
+                        <option value="Gemini">Gemini</option>
+                        <option value="OpenAI">OpenAI</option>
+                    </select>
                 </div>
-                <div>
-                    <label class="block text-sm text-gray-400">OpenAI API Key</label>
-                    <input type="password" id="openai-key" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+
+                <!-- Owner Zone -->
+                <div class="border-t border-gray-700 pt-4">
+                    <h3 class="text-lg font-bold text-red-400 mb-2">Owner Zone (API Keys)</h3>
+                    <p class="text-xs text-gray-400 mb-2">Saving keys here makes them available to ALL users.</p>
+                    
+                    <!-- Locked State -->
+                    <div id="owner-lock-msg">
+                        <p class="text-sm text-gray-400 mb-2">Enter password to edit global keys.</p>
+                        <div class="flex space-x-2">
+                            <input type="password" id="owner-pass" class="flex-grow bg-gray-900 border border-gray-700 rounded p-2 text-white focus:outline-none focus:border-primary" placeholder="Password">
+                            <button onclick="unlockOwner()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded font-bold">Unlock</button>
+                        </div>
+                    </div>
+
+                    <!-- Unlocked State -->
+                    <div id="owner-controls" class="hidden space-y-3 mt-2">
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">Gemini API Key (Global)</label>
+                            <input type="password" id="gemini-key" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">OpenAI API Key (Global)</label>
+                            <input type="password" id="openai-key" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+                        </div>
+                    </div>
                 </div>
-                <button onclick="saveLocalSettings(); document.getElementById('settings-panel').classList.add('hidden')" class="w-full bg-primary text-white py-2 rounded font-bold hover:opacity-90">Save & Close</button>
+
+                <button onclick="saveLocalSettings()" class="w-full bg-primary text-white py-2 rounded font-bold hover:opacity-90 mt-4">Save & Close</button>
             </div>
         </div>
     </div>
 
-    <!-- Navigation -->
-    <nav class="flex space-x-2 mb-4 overflow-x-auto pb-2">
+    <!-- Sticky Navigation -->
+    <nav class="flex space-x-2 mb-4 overflow-x-auto pb-2 border-b border-gray-700">
         <button onclick="openTab('ai-generators', this)" class="px-4 py-2 rounded-lg bg-gray-700 text-white font-medium whitespace-nowrap">⚡ Study Generators</button>
         <button onclick="openTab('resources', this)" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 font-medium hover:bg-gray-700 whitespace-nowrap">📚 Resources</button>
         <button onclick="openTab('music', this)" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 font-medium hover:bg-gray-700 whitespace-nowrap">🎵 Music & Focus</button>
         <button onclick="openTab('bookmarklets', this)" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 font-medium hover:bg-gray-700 whitespace-nowrap">🔖 Bookmarklets</button>
     </nav>
 
-    <!-- 1. AI GENERATORS (formerly AI Hub) -->
-    <div id="ai-generators" class="tab-content">
-        <div class="flex flex-col h-full">
-            <!-- Provider & Chat -->
-            <div class="mb-4 flex items-center space-x-4">
-                <select id="ai-provider-select" class="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg p-2.5">
-                    <option value="Gemini">Gemini</option>
-                    <option value="OpenAI">OpenAI</option>
-                </select>
-                <span class="text-xs text-gray-500">Set keys in Settings (Gear Icon)</span>
-            </div>
-
-            <!-- Grid for Generators -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                 <!-- Flashcard Maker -->
-                 <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
-                    <h3 class="text-lg font-bold text-primary mb-2">Flashcard Maker</h3>
-                    <input type="text" id="flashcard-topic" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-2 text-white" placeholder="Enter topic (e.g. Cell Biology)">
-                    <button onclick="runGenerator('flashcard')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 rounded">Generate Cards</button>
-                    <div id="flashcard-result" class="mt-2 text-sm text-gray-300 max-h-32 overflow-y-auto"></div>
-                 </div>
-
-                 <!-- Quiz Maker -->
-                 <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
-                    <h3 class="text-lg font-bold text-primary mb-2">Quiz Maker</h3>
-                    <input type="text" id="quiz-topic" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-2 text-white" placeholder="Enter topic (e.g. American Revolution)">
-                    <button onclick="runGenerator('quiz')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 rounded">Generate Quiz</button>
-                    <div id="quiz-result" class="mt-2 text-sm text-gray-300 max-h-32 overflow-y-auto"></div>
-                 </div>
-            </div>
-
-            <!-- General AI Chat -->
-            <div class="flex-grow bg-gray-800 rounded-xl border border-gray-700 p-4 overflow-y-auto mb-4" id="ai-output">
-                <div class="text-center text-gray-500 mt-10">
-                    <h3 class="text-xl font-bold mb-2">AI Study Assistant</h3>
-                    <p>Ask for help with Math, Essay writing, or History facts below.</p>
-                </div>
-            </div>
-            <div class="flex space-x-2">
-                <input type="text" id="ai-input" class="flex-grow bg-gray-900 border border-gray-700 text-white rounded-lg p-3 focus:outline-none focus:border-primary" placeholder="Ask your AI Tutor...">
-                <button onclick="callAI()" class="bg-primary text-white px-6 py-3 rounded-lg font-bold hover:opacity-90">Send</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 2. RESOURCE LIBRARY -->
-    <div id="resources" class="tab-content hidden">
-        <div class="flex space-x-2 mb-4 overflow-x-auto">
-            <button id="btn-Math" class="subject-btn px-4 py-2 rounded-full bg-gray-800 text-sm hover:bg-gray-700" onclick="loadResources('Math')">Math</button>
-            <button id="btn-Science" class="subject-btn px-4 py-2 rounded-full bg-gray-800 text-sm hover:bg-gray-700" onclick="loadResources('Science')">Science</button>
-            <button id="btn-History" class="subject-btn px-4 py-2 rounded-full bg-gray-800 text-sm hover:bg-gray-700" onclick="loadResources('History')">History</button>
-            <button id="btn-ELA" class="subject-btn px-4 py-2 rounded-full bg-gray-800 text-sm hover:bg-gray-700" onclick="loadResources('ELA')">ELA</button>
-        </div>
-        <div id="resource-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full overflow-y-auto pb-20">
-            <!-- Resources injected here -->
-        </div>
-    </div>
-
-    <!-- 3. MUSIC & FOCUS -->
-    <div id="music" class="tab-content hidden">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-            <!-- Player -->
-            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col">
-                <h3 class="text-xl font-bold mb-4 text-white">Music Player</h3>
-                <div class="mb-4">
-                    <label class="block text-xs text-gray-400 mb-1">Source Type</label>
-                    <select id="music-type" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-2">
-                        <option value="youtube">YouTube Link</option>
-                        <option value="url">MP3 Link</option>
+    <!-- SCROLLABLE CONTENT WRAPPER -->
+    <div id="content-wrapper">
+    
+        <!-- 1. AI GENERATORS (formerly AI Hub) -->
+        <div id="ai-generators" class="tab-content p-2">
+            <div class="flex flex-col h-full">
+                <!-- Provider & Chat -->
+                <div class="mb-4 flex items-center space-x-4">
+                    <select id="ai-provider-select" class="bg-gray-800 border border-gray-700 text-white text-sm rounded-lg p-2.5">
+                        <option value="Gemini">Gemini</option>
+                        <option value="OpenAI">OpenAI</option>
                     </select>
-                    <input type="text" id="music-input" placeholder="Paste URL here..." class="w-full bg-gray-900 border border-gray-700 rounded p-2">
-                    <div class="mt-2 flex justify-between items-center">
-                        <label class="text-xs text-gray-400 cursor-pointer hover:text-white">
-                            <input type="file" class="hidden" onchange="handleFileUpload(event)" accept="audio/*">
-                            📁 Upload Local File
-                        </label>
-                        <button onclick="playMusic()" class="bg-green-600 text-white px-4 py-1 rounded text-sm font-bold">Play</button>
+                    <span class="text-xs text-gray-500">Global Key Loaded</span>
+                </div>
+
+                <!-- Grid for Generators -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                     <!-- Flashcard Maker -->
+                     <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                        <h3 class="text-lg font-bold text-primary mb-2">Flashcard Maker</h3>
+                        <input type="text" id="flashcard-topic" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-2 text-white" placeholder="Enter topic (e.g. Cell Biology)">
+                        <button onclick="runGenerator('flashcard')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 rounded">Generate Cards</button>
+                        <div id="flashcard-result" class="mt-2 text-sm text-gray-300 max-h-32 overflow-y-auto"></div>
+                     </div>
+
+                     <!-- Quiz Maker -->
+                     <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                        <h3 class="text-lg font-bold text-primary mb-2">Quiz Maker</h3>
+                        <input type="text" id="quiz-topic" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-2 text-white" placeholder="Enter topic (e.g. American Revolution)">
+                        <button onclick="runGenerator('quiz')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 rounded">Generate Quiz</button>
+                        <div id="quiz-result" class="mt-2 text-sm text-gray-300 max-h-32 overflow-y-auto"></div>
+                     </div>
+                </div>
+
+                <!-- General AI Chat -->
+                <div class="flex-grow bg-gray-800 rounded-xl border border-gray-700 p-4 overflow-y-auto mb-4 min-h-[200px]" id="ai-output">
+                    <div class="text-center text-gray-500 mt-10">
+                        <h3 class="text-xl font-bold mb-2">AI Study Assistant</h3>
+                        <p>Ask for help with Math, Essay writing, or History facts below.</p>
                     </div>
                 </div>
-                <div id="player-area" class="flex-grow bg-black rounded flex items-center justify-center overflow-hidden relative">
-                    <span class="text-gray-600">Player Screen</span>
-                    <audio id="audio-player" controls class="hidden absolute bottom-0 w-full"></audio>
+                <div class="flex space-x-2 pb-4">
+                    <input type="text" id="ai-input" class="flex-grow bg-gray-900 border border-gray-700 text-white rounded-lg p-3 focus:outline-none focus:border-primary" placeholder="Ask your AI Tutor...">
+                    <button onclick="callAI()" class="bg-primary text-white px-6 py-3 rounded-lg font-bold hover:opacity-90">Send</button>
                 </div>
             </div>
+        </div>
 
-            <!-- Timer & Ambience -->
-            <div class="flex flex-col space-y-6">
-                <!-- Timer -->
-                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 text-center flex-grow flex flex-col justify-center">
-                    <h3 class="text-gray-400 uppercase tracking-widest text-xs font-bold mb-2">Focus Timer</h3>
-                    <div id="timer-display" class="text-6xl font-mono font-bold text-white mb-6">00:00</div>
-                    <div class="flex justify-center space-x-2 mb-4">
-                        <button onclick="startTimer(25)" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded">25m</button>
-                        <button onclick="startTimer(5)" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded">5m</button>
-                        <button onclick="startTimer(15)" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded">15m</button>
+        <!-- 2. RESOURCE LIBRARY -->
+        <div id="resources" class="tab-content hidden p-2">
+            <div class="flex space-x-2 mb-4 overflow-x-auto">
+                <button id="btn-Math" class="subject-btn px-4 py-2 rounded-full bg-gray-800 text-sm hover:bg-gray-700" onclick="loadResources('Math')">Math</button>
+                <button id="btn-Science" class="subject-btn px-4 py-2 rounded-full bg-gray-800 text-sm hover:bg-gray-700" onclick="loadResources('Science')">Science</button>
+                <button id="btn-History" class="subject-btn px-4 py-2 rounded-full bg-gray-800 text-sm hover:bg-gray-700" onclick="loadResources('History')">History</button>
+                <button id="btn-ELA" class="subject-btn px-4 py-2 rounded-full bg-gray-800 text-sm hover:bg-gray-700" onclick="loadResources('ELA')">ELA</button>
+            </div>
+            <div id="resource-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
+                <!-- Resources injected here -->
+            </div>
+        </div>
+
+        <!-- 3. MUSIC & FOCUS -->
+        <div id="music" class="tab-content hidden p-2">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full pb-20">
+                <!-- Player -->
+                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col">
+                    <h3 class="text-xl font-bold mb-4 text-white">Music Player</h3>
+                    <div class="mb-4">
+                        <label class="block text-xs text-gray-400 mb-1">Source Type</label>
+                        <select id="music-type" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-2">
+                            <option value="youtube">YouTube Link</option>
+                            <option value="url">MP3 Link</option>
+                        </select>
+                        <input type="text" id="music-input" placeholder="Paste URL here..." class="w-full bg-gray-900 border border-gray-700 rounded p-2">
+                        <div class="mt-2 flex justify-between items-center">
+                            <label class="text-xs text-gray-400 cursor-pointer hover:text-white">
+                                <input type="file" class="hidden" onchange="handleFileUpload(event)" accept="audio/*">
+                                📁 Upload Local File
+                            </label>
+                            <button onclick="playMusic()" class="bg-green-600 text-white px-4 py-1 rounded text-sm font-bold">Play</button>
+                        </div>
                     </div>
-                    <button onclick="resetTimer()" class="text-red-400 text-sm hover:text-red-300">Reset</button>
+                    <div id="player-area" class="flex-grow bg-black rounded flex items-center justify-center overflow-hidden relative min-h-[250px]">
+                        <span class="text-gray-600">Player Screen</span>
+                        <audio id="audio-player" controls class="hidden absolute bottom-0 w-full"></audio>
+                    </div>
                 </div>
 
-                <!-- Noise -->
-                <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
-                    <h3 class="font-bold mb-2">Focus Ambience (Tone.js)</h3>
-                    <div class="flex space-x-2">
-                        <button onclick="toggleNoise('pink')" id="noise-btn" class="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded text-sm">Start Focus Noise</button>
+                <!-- Timer & Ambience -->
+                <div class="flex flex-col space-y-6">
+                    <!-- Timer -->
+                    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 text-center flex-grow flex flex-col justify-center">
+                        <h3 class="text-gray-400 uppercase tracking-widest text-xs font-bold mb-2">Focus Timer</h3>
+                        <div id="timer-display" class="text-6xl font-mono font-bold text-white mb-6">00:00</div>
+                        <div class="flex justify-center space-x-2 mb-4">
+                            <button onclick="startTimer(25)" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded">25m</button>
+                            <button onclick="startTimer(5)" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded">5m</button>
+                            <button onclick="startTimer(15)" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded">15m</button>
+                        </div>
+                        <button onclick="resetTimer()" class="text-red-400 text-sm hover:text-red-300">Reset</button>
+                    </div>
+
+                    <!-- Noise -->
+                    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+                        <h3 class="font-bold mb-2">Focus Ambience (Tone.js)</h3>
+                        <div class="flex space-x-2">
+                            <button onclick="toggleNoise('pink')" id="noise-btn" class="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded text-sm">Start Focus Noise</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- 4. BOOKMARKLETS -->
-    <div id="bookmarklets" class="tab-content hidden">
-        <div class="flex gap-4 mb-6">
-            <!-- Mini Player Bookmarklet -->
-            <div class="bg-blue-900/20 border border-blue-500/30 p-4 rounded-lg flex-1">
-                <h3 class="text-blue-400 font-bold mb-1">🎵 Mini Music Player Bookmarklet</h3>
-                <p class="text-sm text-gray-400 mb-2">Drag this to bookmarks. Opens a popup player.</p>
-                <a href="javascript:(function(){window.open('data:text/html;charset=utf-8,' + encodeURIComponent('<!DOCTYPE html><html><head><title>Mini Player</title><style>body{margin:0;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;}</style></head><body><h2>Paste YouTube/MP3 URL here to play</h2></body></html>'), 'MiniPlayer', 'width=400,height=400');})();" class="inline-block bg-blue-600 text-white px-4 py-2 rounded font-bold shadow-lg cursor-grab active:cursor-grabbing">Mini Player</a>
+        <!-- 4. BOOKMARKLETS -->
+        <div id="bookmarklets" class="tab-content hidden p-2">
+            <div class="flex gap-4 mb-6">
+                <!-- Mini Player Bookmarklet -->
+                <div class="bg-blue-900/20 border border-blue-500/30 p-4 rounded-lg flex-1">
+                    <h3 class="text-blue-400 font-bold mb-1">🎵 Mini Music Player Bookmarklet</h3>
+                    <p class="text-sm text-gray-400 mb-2">Drag this to bookmarks. Opens a popup player.</p>
+                    <a href="javascript:(function(){window.open('data:text/html;charset=utf-8,' + encodeURIComponent('<!DOCTYPE html><html><head><title>Mini Player</title><style>body{margin:0;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;}</style></head><body><h2>Paste YouTube/MP3 URL here to play</h2></body></html>'), 'MiniPlayer', 'width=400,height=400');})();" class="inline-block bg-blue-600 text-white px-4 py-2 rounded font-bold shadow-lg cursor-grab active:cursor-grabbing">Mini Player</a>
+                </div>
+
+                 <!-- Mini Browser Bookmarklet -->
+                <div class="bg-green-900/20 border border-green-500/30 p-4 rounded-lg flex-1">
+                    <h3 class="text-green-400 font-bold mb-1">🌐 Mini Browser Bookmarklet</h3>
+                    <p class="text-sm text-gray-400 mb-2">Drag this to bookmarks. Opens a small browser popup.</p>
+                    <a href="javascript:(function(){var w=window.open('about:blank','_blank','width=600,height=400,menubar=no,toolbar=no,location=no,status=no');var d=w.document;d.write('<!DOCTYPE html><html><head><title>Mini Browser</title><style>body{margin:0;display:flex;flex-direction:column;height:100vh;}input{padding:10px;border:none;border-bottom:1px solid #ccc;}iframe{flex-grow:1;border:none;}</style></head><body><input type=\'text\' id=\'url\' placeholder=\'Enter URL (https://...)\' style=\'width:100%\'><iframe id=\'frame\' src=\'about:blank\'></iframe><script>document.getElementById(\'url\').addEventListener(\'keydown\',function(e){if(e.key===\'Enter\'){document.getElementById(\'frame\').src=this.value;}});</script></body></html>');d.close();})();" class="inline-block bg-green-600 text-white px-4 py-2 rounded font-bold shadow-lg cursor-grab active:cursor-grabbing">Mini Browser</a>
+                </div>
             </div>
 
-             <!-- Mini Browser Bookmarklet -->
-            <div class="bg-green-900/20 border border-green-500/30 p-4 rounded-lg flex-1">
-                <h3 class="text-green-400 font-bold mb-1">🌐 Mini Browser Bookmarklet</h3>
-                <p class="text-sm text-gray-400 mb-2">Drag this to bookmarks. Opens a small browser popup.</p>
-                <a href="javascript:(function(){var w=window.open('about:blank','_blank','width=600,height=400,menubar=no,toolbar=no,location=no,status=no');var d=w.document;d.write('<!DOCTYPE html><html><head><title>Mini Browser</title><style>body{margin:0;display:flex;flex-direction:column;height:100vh;}input{padding:10px;border:none;border-bottom:1px solid #ccc;}iframe{flex-grow:1;border:none;}</style></head><body><input type=\'text\' id=\'url\' placeholder=\'Enter URL (https://...)\' style=\'width:100%\'><iframe id=\'frame\' src=\'about:blank\'></iframe><script>document.getElementById(\'url\').addEventListener(\'keydown\',function(e){if(e.key===\'Enter\'){document.getElementById(\'frame\').src=this.value;}});</script></body></html>');d.close();})();" class="inline-block bg-green-600 text-white px-4 py-2 rounded font-bold shadow-lg cursor-grab active:cursor-grabbing">Mini Browser</a>
+            <h2 class="text-xl font-bold mb-4">Classic Tools</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pb-20">
+                 <div class="bg-gray-800 p-4 rounded border border-gray-700">
+                    <a href="javascript:document.body.contentEditable='true';document.designMode='on';void 0" class="text-primary font-bold block mb-1">Edit Page</a>
+                    <p class="text-xs text-gray-500">Make any website text editable.</p>
+                 </div>
+                 <div class="bg-gray-800 p-4 rounded border border-gray-700">
+                    <a href="javascript:(function(){var s=document.createElement('style');s.innerHTML='body{filter:invert(100%)!important;background:#222!important;}img,video{filter:invert(100%)!important;}';document.head.appendChild(s);})();" class="text-primary font-bold block mb-1">Dark Mode</a>
+                    <p class="text-xs text-gray-500">Force dark mode on any site.</p>
+                 </div>
+                 <div class="bg-gray-800 p-4 rounded border border-gray-700">
+                    <a href="javascript:(function(){window.scrollTo(0,0);})();" class="text-primary font-bold block mb-1">Scroll Top</a>
+                    <p class="text-xs text-gray-500">Jump to top of page.</p>
+                 </div>
             </div>
-        </div>
-
-        <h2 class="text-xl font-bold mb-4">Classic Tools</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-             <div class="bg-gray-800 p-4 rounded border border-gray-700">
-                <a href="javascript:document.body.contentEditable='true';document.designMode='on';void 0" class="text-primary font-bold block mb-1">Edit Page</a>
-                <p class="text-xs text-gray-500">Make any website text editable.</p>
-             </div>
-             <div class="bg-gray-800 p-4 rounded border border-gray-700">
-                <a href="javascript:(function(){var s=document.createElement('style');s.innerHTML='body{filter:invert(100%)!important;background:#222!important;}img,video{filter:invert(100%)!important;}';document.head.appendChild(s);})();" class="text-primary font-bold block mb-1">Dark Mode</a>
-                <p class="text-xs text-gray-500">Force dark mode on any site.</p>
-             </div>
-             <div class="bg-gray-800 p-4 rounded border border-gray-700">
-                <a href="javascript:(function(){window.scrollTo(0,0);})();" class="text-primary font-bold block mb-1">Scroll Top</a>
-                <p class="text-xs text-gray-500">Jump to top of page.</p>
-             </div>
         </div>
     </div>
     
