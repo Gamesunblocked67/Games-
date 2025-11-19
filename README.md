@@ -7,7 +7,6 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://unpkg.com/tone@14.9.15/build/Tone.js"></script>
-
 <style>
 :root {--primary-color:#3b82f6;}
 .bg-primary {background-color: var(--primary-color);}
@@ -101,7 +100,7 @@ nav button:hover{background:var(--primary-color);}
 
         <div class="mb-2">
             <label>Music URL:</label>
-            <input id="music-input" class="p-2 w-full rounded bg-gray-800 text-white" placeholder="YouTube or direct mp3 URL">
+            <input id="music-input" class="p-2 w-full rounded bg-gray-800 text-white" placeholder="Direct MP3 URL only">
             <button class="mt-1 p-2 bg-primary rounded" onclick="playMusic()">Play Music</button>
             <audio id="audio-player" controls class="mt-2 hidden"></audio>
         </div>
@@ -118,12 +117,11 @@ nav button:hover{background:var(--primary-color);}
         <option value="Gemini">Gemini</option>
         <option value="OpenAI">OpenAI</option>
     </select>
-    <div id="owner-controls" class="hidden mt-2">
-        <label>Gemini API Key:</label>
-        <input id="gemini-key" type="text" class="p-2 w-full rounded bg-gray-700 mb-1">
-        <label>OpenAI API Key:</label>
-        <input id="openai-key" type="text" class="p-2 w-full rounded bg-gray-700 mb-1">
-    </div>
+    <h3 class="font-semibold mt-2 mb-1">API Keys:</h3>
+    <label>Gemini API Key:</label>
+    <input id="gemini-key" type="text" class="p-2 w-full rounded bg-gray-700 mb-1" placeholder="Enter Gemini API key">
+    <label>OpenAI API Key:</label>
+    <input id="openai-key" type="text" class="p-2 w-full rounded bg-gray-700 mb-2" placeholder="Enter OpenAI API key">
     <button class="p-2 bg-primary rounded w-full mt-2" onclick="saveLocalSettings()">Save Settings</button>
 </div>
 
@@ -160,7 +158,28 @@ function openTab(id,btn){
 // Resources
 const appSettings = {
     keys:{Gemini:'',OpenAI:''},
-    resources:{Math:[],Science:[],History:[],ELA:[]},
+    resources:{
+        Math:[
+            {title:'Khan Academy Algebra',url:'https://www.khanacademy.org/math/algebra',type:'Video/Exercises'},
+            {title:'Math Is Fun - Fractions',url:'https://www.mathsisfun.com/fractions.html',type:'Website'},
+            {title:'IXL Geometry Practice',url:'https://www.ixl.com/math/geometry',type:'Exercises'}
+        ],
+        Science:[
+            {title:'NASA Kids Club',url:'https://www.nasa.gov/kidsclub/index.html',type:'Website'},
+            {title:'Crash Course Biology',url:'https://www.youtube.com/playlist?list=PL3EED4C1D684D3ADF',type:'Video'},
+            {title:'PhET Interactive Simulations',url:'https://phet.colorado.edu',type:'Simulation'}
+        ],
+        History:[
+            {title:'History for Kids',url:'https://www.historyforkids.net/',type:'Website'},
+            {title:'Crash Course World History',url:'https://www.youtube.com/playlist?list=PLBDA2E52FB1EF80C9',type:'Video'},
+            {title:'Smithsonian History Resources',url:'https://www.si.edu/spotlight/education',type:'Website'}
+        ],
+        ELA:[
+            {title:'ReadWorks',url:'https://www.readworks.org/',type:'Reading/Exercises'},
+            {title:'Project Gutenberg',url:'https://www.gutenberg.org/',type:'Books'},
+            {title:'Vocabulary.com',url:'https://www.vocabulary.com/',type:'Exercises'}
+        ]
+    },
     games:{Math:[],Science:[],History:[],ELA:[]}
 };
 function loadResources(subject){
@@ -203,10 +222,6 @@ function toggleNoise(type){
 function playMusic(){
     const input=document.getElementById('music-input').value;
     const audio=document.getElementById('audio-player');
-    if(input.includes('youtube.com')||input.includes('youtu.be')){
-        alert('YouTube playback not supported directly. Use direct MP3 links.');
-        return;
-    }
     audio.src=input;
     audio.classList.remove('hidden');
     audio.play();
@@ -232,7 +247,7 @@ async function callAI(){
             const data=await res.json();
             text=data.choices[0].message.content;
         } else {text='Gemini API call placeholder';}
-        output.innerHTML=marked.parse(text);
+        output.innerHTML=text;
     }catch(e){output.innerHTML='Error:'+e.message;}
 }
 async function runGenerator(type){
@@ -257,17 +272,22 @@ async function runGenerator(type){
             const data=await res.json();
             text=data.choices[0].message.content;
         } else text='Gemini API call placeholder';
-        output.innerHTML=marked.parse(text);
+        output.innerHTML=text;
     }catch(e){output.innerHTML='Error:'+e.message;}
 }
 
 // Settings & Admin
 function toggleSettings(){document.getElementById('settings-panel').classList.toggle('hidden');}
-function saveLocalSettings(){appSettings.aiProvider=document.getElementById('ai-provider-select-settings').value;appSettings.keys.Gemini=document.getElementById('gemini-key').value;appSettings.keys.OpenAI=document.getElementById('openai-key').value;alert('Settings saved');document.getElementById('settings-panel').classList.add('hidden');}
+function saveLocalSettings(){
+    appSettings.aiProvider=document.getElementById('ai-provider-select-settings').value;
+    appSettings.keys.Gemini=document.getElementById('gemini-key').value;
+    appSettings.keys.OpenAI=document.getElementById('openai-key').value;
+    alert('Settings saved');
+    document.getElementById('settings-panel').classList.add('hidden');
+}
 
 function unlockAdmin(){document.getElementById('admin-panel').classList.remove('hidden');}
 function unlockAdminPanel(){if(document.getElementById('admin-pass').value==='admin123'){document.getElementById('admin-controls').classList.remove('hidden');alert('Admin unlocked');} else alert('Wrong password');}
-
 function addResource(subject){
     const title=prompt('Resource title?'); const url=prompt('Resource URL?'); const type=prompt('Type?'); if(title && url && type){appSettings.resources[subject].push({title,url,type}); loadResources(subject);}
 }
