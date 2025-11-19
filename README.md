@@ -3,302 +3,330 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>7th Grade Ultimate Hub</title>
+<title>7th Grade Ultimate Portal</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://unpkg.com/tone@14.9.15/build/Tone.js"></script>
+<script src="https://unpkg.com/marked/marked.min.js"></script>
+<script src="https://unpkg.com/tone/build/Tone.js"></script>
+
+<!-- Firebase Setup -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-hub-v8';
+
+let db, auth;
+window.appSettings = { theme: '#3b82f6', aiProvider: 'OpenAI', keys: {} };
+window.ownerUnlocked = false;
+
+if(firebaseConfig){
+  const app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  auth = getAuth(app);
+  await signInAnonymously(auth);
+
+  onAuthStateChanged(auth, async (user)=>{
+    if(user){
+      const globalConfigRef = doc(db, 'artifacts', appId, 'public_data', 'global_config');
+      onSnapshot(globalConfigRef, (doc)=>{
+        if(doc.exists()){
+          const data = doc.data();
+          if(data.keys){ window.appSettings.keys = data.keys; }
+        }
+      });
+      const userConfigRef = doc(db,'artifacts',appId,'users',user.uid,'settings','config');
+      const snap = await getDoc(userConfigRef);
+      if(snap.exists()){
+        const data = snap.data();
+        if(data.theme) applyTheme(data.theme);
+        if(data.provider) window.appSettings.aiProvider = data.provider;
+      }
+    }
+  });
+
+  window.saveSettingsToDb = async (scope)=>{
+    if(!auth.currentUser) return;
+    if(scope==='local' || scope==='both'){
+      const userDocRef = doc(db,'artifacts',appId,'users',auth.currentUser.uid,'settings','config');
+      await setDoc(userDocRef,{theme: window.appSettings.theme, provider: window.appSettings.aiProvider},{merge:true});
+    }
+    if((scope==='global'||scope==='both') && window.ownerUnlocked){
+      const globalDocRef = doc(db,'artifacts',appId,'public_data','global_config');
+      await setDoc(globalDocRef,{keys: window.appSettings.keys},{merge:true});
+      alert("Global API Keys Saved for ALL Users!");
+    } else if(scope==='local'){ alert("User Preferences Saved."); }
+  };
+}
+</script>
+
 <style>
-:root {--primary-color:#3b82f6;}
-.bg-primary {background-color: var(--primary-color);}
-.text-primary {color: var(--primary-color);}
-body{font-family:'Inter',sans-serif;background:#111827;color:#f3f4f6;height:100vh;display:flex;flex-direction:column;}
-header, nav{display:flex;align-items:center;justify-content:space-between;}
-nav button{padding:0.5rem 1rem;margin-right:0.25rem;border-radius:0.25rem;background:#1f2937;color:#f3f4f6;transition:0.2s;}
-nav button:hover{background:var(--primary-color);}
-.tab-content{flex-grow:1;overflow-y:auto;padding:1rem;}
-.hidden{display:none;}
-.resource-card{padding:0.5rem 1rem;margin:0.5rem 0;border:1px solid #374151;border-radius:0.5rem;transition:0.2s;}
-.resource-card:hover{border-color:var(--primary-color);cursor:pointer;}
+:root { --primary-color:#3b82f6; }
+.bg-primary{background-color:var(--primary-color);}
+.text-primary{color:var(--primary-color);}
+body{font-family:'Inter',sans-serif;background:#111827;color:#f3f4f6;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+::-webkit-scrollbar{width:8px;}
+::-webkit-scrollbar-thumb{background:#4b5563;border-radius:4px;}
+::-webkit-scrollbar-track{background:#1f2937;}
+#content-wrapper{flex-grow:1;overflow:hidden;position:relative;}
+.tab-content{height:100%;display:flex;flex-direction:column;overflow-y:auto;padding-bottom:2rem;}
+.hidden{display:none!important;}
+.resource-link:hover{transform:translateX(5px);}
+.youtube-container{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:.5rem;}
+.youtube-container iframe{position:absolute;top:0;left:0;width:100%;height:100%;}
 </style>
-</head>
-<body>
-
-<header class="p-4 flex justify-between items-center bg-gray-800">
-    <div>
-        <h1 class="text-2xl font-bold text-white">7th Grade Hub</h1>
-        <p class="text-gray-400 text-sm">Study, Play & Learn</p>
-    </div>
-    <div class="flex space-x-2">
-        <button onclick="toggleSettings()">⚙️ Settings</button>
-        <button onclick="unlockAdmin()">🔒 Admin</button>
-    </div>
-</header>
-
-<nav class="p-2 bg-gray-900">
-    <button onclick="openTab('resources', this)">Resources</button>
-    <button onclick="openTab('ai-tools', this)">AI Tools</button>
-    <button onclick="openTab('focus', this)">Focus</button>
-</nav>
-
-<div id="content-wrapper" class="flex-grow">
-    <!-- Resources Tab -->
-    <div id="resources" class="tab-content hidden">
-        <div class="mb-2 flex space-x-2">
-            <button id="btn-Math" class="subject-btn bg-primary" onclick="loadResources('Math')">Math</button>
-            <button id="btn-Science" class="subject-btn" onclick="loadResources('Science')">Science</button>
-            <button id="btn-History" class="subject-btn" onclick="loadResources('History')">History</button>
-            <button id="btn-ELA" class="subject-btn" onclick="loadResources('ELA')">ELA</button>
-        </div>
-        <div id="resource-list"></div>
-    </div>
-
-    <!-- AI Tools Tab -->
-    <div id="ai-tools" class="tab-content hidden">
-        <div class="mb-2">
-            <label class="block mb-1">Select AI Provider:</label>
-            <select id="ai-provider-select" class="p-2 rounded bg-gray-800 text-white">
-                <option value="Gemini">Gemini</option>
-                <option value="OpenAI">OpenAI</option>
-            </select>
-        </div>
-
-        <div class="mb-2">
-            <label>Flashcard Topic:</label>
-            <input id="flashcard-topic" class="p-2 w-full rounded bg-gray-800 text-white" placeholder="Enter topic">
-            <button class="mt-1 p-2 bg-primary rounded" onclick="runGenerator('flashcard')">Generate Flashcards</button>
-            <div id="flashcard-result" class="mt-2"></div>
-        </div>
-
-        <div class="mb-2">
-            <label>Quiz Topic:</label>
-            <input id="quiz-topic" class="p-2 w-full rounded bg-gray-800 text-white" placeholder="Enter topic">
-            <button class="mt-1 p-2 bg-primary rounded" onclick="runGenerator('quiz')">Generate Quiz</button>
-            <div id="quiz-result" class="mt-2"></div>
-        </div>
-
-        <div class="mb-2">
-            <label>Tutor Question:</label>
-            <textarea id="ai-input" class="p-2 w-full rounded bg-gray-800 text-white" placeholder="Ask a question"></textarea>
-            <button class="mt-1 p-2 bg-primary rounded" onclick="callAI()">Ask AI Tutor</button>
-            <div id="ai-output" class="mt-2"></div>
-        </div>
-    </div>
-
-    <!-- Focus Tab -->
-    <div id="focus" class="tab-content hidden">
-        <div class="mb-2">
-            <label>Timer (minutes):</label>
-            <input id="timer-input" type="number" class="p-2 rounded bg-gray-800 text-white" placeholder="e.g. 25">
-            <button class="p-2 bg-primary rounded" onclick="startTimer(document.getElementById('timer-input').value)">Start</button>
-            <button class="p-2 bg-gray-700 rounded" onclick="resetTimer()">Reset</button>
-            <div id="timer-display" class="text-xl mt-1">00:00</div>
-        </div>
-
-        <div class="mb-2">
-            <button id="noise-btn" class="p-2 bg-primary rounded" onclick="toggleNoise('pink')">Start Focus Noise</button>
-        </div>
-
-        <div class="mb-2">
-            <label>Music URL:</label>
-            <input id="music-input" class="p-2 w-full rounded bg-gray-800 text-white" placeholder="Direct MP3 URL only">
-            <button class="mt-1 p-2 bg-primary rounded" onclick="playMusic()">Play Music</button>
-            <audio id="audio-player" controls class="mt-2 hidden"></audio>
-        </div>
-    </div>
-</div>
-
-<!-- Settings Panel -->
-<div id="settings-panel" class="fixed top-10 right-10 p-4 bg-gray-800 rounded shadow-lg hidden w-80">
-    <h2 class="text-lg font-bold mb-2">Settings</h2>
-    <label>Theme Color:</label>
-    <input id="color-picker" type="color" class="w-full h-8 mb-2" onchange="applyTheme(this.value)">
-    <label>AI Provider:</label>
-    <select id="ai-provider-select-settings" class="p-2 w-full rounded bg-gray-700 mb-2">
-        <option value="Gemini">Gemini</option>
-        <option value="OpenAI">OpenAI</option>
-    </select>
-    <h3 class="font-semibold mt-2 mb-1">API Keys:</h3>
-    <label>Gemini API Key:</label>
-    <input id="gemini-key" type="text" class="p-2 w-full rounded bg-gray-700 mb-1" placeholder="Enter Gemini API key">
-    <label>OpenAI API Key:</label>
-    <input id="openai-key" type="text" class="p-2 w-full rounded bg-gray-700 mb-2" placeholder="Enter OpenAI API key">
-    <button class="p-2 bg-primary rounded w-full mt-2" onclick="saveLocalSettings()">Save Settings</button>
-</div>
-
-<!-- Admin Unlock -->
-<div id="admin-panel" class="fixed top-40 left-1/2 transform -translate-x-1/2 p-4 bg-gray-900 rounded shadow-lg hidden w-80">
-    <h2 class="text-lg font-bold mb-2">Admin Panel 🔑</h2>
-    <label>Password:</label>
-    <input id="admin-pass" type="password" class="p-2 w-full rounded bg-gray-700 mb-2">
-    <button class="p-2 bg-primary rounded w-full" onclick="unlockAdminPanel()">Unlock Admin</button>
-    <div id="admin-controls" class="hidden mt-2">
-        <button class="p-2 bg-green-600 rounded w-full mb-1" onclick="addResource(currentSubject)">Add Resource</button>
-        <button class="p-2 bg-blue-600 rounded w-full mb-1" onclick="addGame(currentSubject)">Add Game</button>
-    </div>
-</div>
 
 <script>
-let currentSubject='Math';
-let timerInterval,timeLeft;
-let noiseSynth=null;
-
-// Theme
-function applyTheme(color){document.documentElement.style.setProperty('--primary-color',color);}
-
-// Tabs
-function openTab(id,btn){
-    document.querySelectorAll('.tab-content').forEach(el=>el.classList.add('hidden'));
-    document.getElementById(id).classList.remove('hidden');
-    if(btn){
-        document.querySelectorAll('nav button').forEach(b=>b.classList.remove('bg-primary'));
-        btn.classList.add('bg-primary');
-    }
+function applyTheme(color){document.documentElement.style.setProperty('--primary-color',color);window.appSettings.theme=color;}
+function openTab(tabId,btn){
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.add('hidden'));
+  document.getElementById(tabId).classList.remove('hidden');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('bg-gray-700','text-white'));
+  if(btn) btn.classList.add('bg-gray-700','text-white');
+  if(tabId==='resources') loadResources('Math');
 }
-
-// Resources
-const appSettings = {
-    keys:{Gemini:'',OpenAI:''},
-    resources:{
-        Math:[
-            {title:'Khan Academy Algebra',url:'https://www.khanacademy.org/math/algebra',type:'Video/Exercises'},
-            {title:'Math Is Fun - Fractions',url:'https://www.mathsisfun.com/fractions.html',type:'Website'},
-            {title:'IXL Geometry Practice',url:'https://www.ixl.com/math/geometry',type:'Exercises'}
-        ],
-        Science:[
-            {title:'NASA Kids Club',url:'https://www.nasa.gov/kidsclub/index.html',type:'Website'},
-            {title:'Crash Course Biology',url:'https://www.youtube.com/playlist?list=PL3EED4C1D684D3ADF',type:'Video'},
-            {title:'PhET Interactive Simulations',url:'https://phet.colorado.edu',type:'Simulation'}
-        ],
-        History:[
-            {title:'History for Kids',url:'https://www.historyforkids.net/',type:'Website'},
-            {title:'Crash Course World History',url:'https://www.youtube.com/playlist?list=PLBDA2E52FB1EF80C9',type:'Video'},
-            {title:'Smithsonian History Resources',url:'https://www.si.edu/spotlight/education',type:'Website'}
-        ],
-        ELA:[
-            {title:'ReadWorks',url:'https://www.readworks.org/',type:'Reading/Exercises'},
-            {title:'Project Gutenberg',url:'https://www.gutenberg.org/',type:'Books'},
-            {title:'Vocabulary.com',url:'https://www.vocabulary.com/',type:'Exercises'}
-        ]
-    },
-    games:{Math:[],Science:[],History:[],ELA:[]}
-};
-function loadResources(subject){
-    currentSubject=subject;
-    const list=document.getElementById('resource-list');
-    list.innerHTML='';
-    document.querySelectorAll('.subject-btn').forEach(b=>b.classList.remove('bg-primary'));
-    document.getElementById(`btn-${subject}`).classList.add('bg-primary');
-    appSettings.resources[subject].forEach(r=>{
-        const div=document.createElement('div');
-        div.className='resource-card';
-        div.textContent=`[${r.type}] ${r.title}`;
-        div.onclick=()=>window.open(r.url,'_blank');
-        list.appendChild(div);
-    });
-    appSettings.games[subject].forEach(g=>{
-        const div=document.createElement('div');
-        div.className='resource-card';
-        div.textContent=`[Game] ${g.title}`;
-        div.onclick=()=>window.open(g.url,'_blank');
-        list.appendChild(div);
-    });
-}
-
-// Timer
-function startTimer(min){clearInterval(timerInterval);timeLeft=min*60;updateTimer();timerInterval=setInterval(()=>{timeLeft--;updateTimer();if(timeLeft<=0){clearInterval(timerInterval);alert("Time's up!");}},1000);}
-function updateTimer(){const m=Math.floor(timeLeft/60),s=timeLeft%60;document.getElementById('timer-display').textContent=`${m}:${s<10?'0':''}${s}`;}
-function resetTimer(){clearInterval(timerInterval);document.getElementById('timer-display').textContent='00:00';}
-
-// Noise
-function toggleNoise(type){
-    if(noiseSynth){noiseSynth.stop();noiseSynth.dispose();noiseSynth=null;document.getElementById('noise-btn').textContent='Start Focus Noise';return;}
-    Tone.start();
-    noiseSynth=new Tone.Noise(type).toDestination();
-    noiseSynth.start();
-    document.getElementById('noise-btn').textContent='Stop Noise';
-}
-
-// Music
-function playMusic(){
-    const input=document.getElementById('music-input').value;
-    const audio=document.getElementById('audio-player');
-    audio.src=input;
-    audio.classList.remove('hidden');
-    audio.play();
-}
-
-// AI Tools
-async function callAI(){
-    const prompt=document.getElementById('ai-input').value;
-    const provider=document.getElementById('ai-provider-select').value;
-    const output=document.getElementById('ai-output');
-    if(!prompt){output.innerHTML='Enter a question'; return;}
-    const key=appSettings.keys[provider];
-    if(!key){output.innerHTML='Set API Key in settings';return;}
-    output.innerHTML='Thinking...';
-    try{
-        let text='';
-        if(provider==='OpenAI'){
-            const res=await fetch('https://api.openai.com/v1/chat/completions',{
-                method:'POST',
-                headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
-                body:JSON.stringify({model:'gpt-3.5-turbo',messages:[{role:'user',content:prompt}]})
-            });
-            const data=await res.json();
-            text=data.choices[0].message.content;
-        } else {text='Gemini API call placeholder';}
-        output.innerHTML=text;
-    }catch(e){output.innerHTML='Error:'+e.message;}
-}
-async function runGenerator(type){
-    const topic=document.getElementById(type+'-topic').value;
-    if(!topic) return alert('Enter topic');
-    const provider=document.getElementById('ai-provider-select').value;
-    const key=appSettings.keys[provider];
-    const output=document.getElementById(type+'-result');
-    if(!key){output.innerHTML='Set API Key';return;}
-    output.innerHTML='Generating...';
-    try{
-        let prompt='';
-        if(type==='flashcard') prompt=`Create 5 flashcards for ${topic} as Q/A.`;
-        if(type==='quiz') prompt=`Create 3 multiple-choice questions for ${topic} with answers.`;
-        let text='';
-        if(provider==='OpenAI'){
-            const res=await fetch('https://api.openai.com/v1/chat/completions',{
-                method:'POST',
-                headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
-                body:JSON.stringify({model:'gpt-3.5-turbo',messages:[{role:'user',content:prompt}]})
-            });
-            const data=await res.json();
-            text=data.choices[0].message.content;
-        } else text='Gemini API call placeholder';
-        output.innerHTML=text;
-    }catch(e){output.innerHTML='Error:'+e.message;}
-}
-
-// Settings & Admin
 function toggleSettings(){document.getElementById('settings-panel').classList.toggle('hidden');}
+function unlockOwner(){
+  const pass=document.getElementById('owner-pass').value;
+  if(pass==='owner123'){
+    window.ownerUnlocked=true;
+    document.getElementById('owner-controls').classList.remove('hidden');
+    document.getElementById('owner-lock-msg').classList.add('hidden');
+    document.getElementById('gemini-key').value=window.appSettings.keys.gemini||'';
+    document.getElementById('openai-key').value=window.appSettings.keys.openai||'';
+  } else alert('Incorrect password.');
+}
 function saveLocalSettings(){
-    appSettings.aiProvider=document.getElementById('ai-provider-select-settings').value;
-    appSettings.keys.Gemini=document.getElementById('gemini-key').value;
-    appSettings.keys.OpenAI=document.getElementById('openai-key').value;
-    alert('Settings saved');
-    document.getElementById('settings-panel').classList.add('hidden');
+  if(window.ownerUnlocked){
+    window.appSettings.keys.gemini=document.getElementById('gemini-key').value;
+    window.appSettings.keys.openai=document.getElementById('openai-key').value;
+  }
+  window.appSettings.aiProvider=document.getElementById('ai-provider-select-settings').value;
+  const scope = window.ownerUnlocked ? 'both' : 'local';
+  if(window.saveSettingsToDb) window.saveSettingsToDb(scope);
+  document.getElementById('ai-provider-select').value=window.appSettings.aiProvider;
+  document.getElementById('settings-panel').classList.add('hidden');
 }
 
-function unlockAdmin(){document.getElementById('admin-panel').classList.remove('hidden');}
-function unlockAdminPanel(){if(document.getElementById('admin-pass').value==='admin123'){document.getElementById('admin-controls').classList.remove('hidden');alert('Admin unlocked');} else alert('Wrong password');}
-function addResource(subject){
-    const title=prompt('Resource title?'); const url=prompt('Resource URL?'); const type=prompt('Type?'); if(title && url && type){appSettings.resources[subject].push({title,url,type}); loadResources(subject);}
-}
-function addGame(subject){
-    const title=prompt('Game title?'); const url=prompt('Game URL?'); if(title && url){appSettings.games[subject].push({title,url,type:'game'}); loadResources(subject);}
+// --- AI FUNCTION ---
+async function callAI(prompt){
+  const provider=window.appSettings.aiProvider;
+  const key=window.appSettings.keys[provider.toLowerCase()];
+  if(!key) return "API Key missing!";
+  let text="";
+  try{
+    if(provider==='Gemini'){
+      const resp=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+      });
+      const data=await resp.json();
+      if(data.candidates && data.candidates.length>0) text=data.candidates[0].content.parts[0].text;
+      else text="No response from Gemini.";
+    } else if(provider==='OpenAI'){
+      const resp=await fetch('https://api.openai.com/v1/chat/completions',{
+        method:'POST',headers:{'Authorization':`Bearer ${key}`,'Content-Type':'application/json'},
+        body:JSON.stringify({model:"gpt-3.5-turbo",messages:[{role:"user",content:prompt}]})
+      });
+      const data=await resp.json();
+      text=data.choices[0].message.content;
+    }
+  }catch(e){text="Error: "+e.message;}
+  return text;
 }
 
-// Initialize
-openTab('resources');
-loadResources('Math');
+// AI Generators
+async function runGenerator(type){
+  const topic=document.getElementById(type+'-topic').value;
+  if(!topic) return alert("Enter topic!");
+  const resultDiv=document.getElementById(type+'-result');
+  resultDiv.innerHTML='<span class="text-yellow-400">Generating...</span>';
+  let prompt="";
+  if(type==='flashcard') prompt=`Create 5 flashcards for ${topic}. Format as Question: Answer pairs.`;
+  if(type==='quiz') prompt=`Create 3-question multiple choice quiz for ${topic} with answers.`;
+  if(type==='tutor') prompt=`Explain this topic in simple terms: ${topic}.`;
+  if(type==='quiz-helper') prompt=`Give tips and summary to study for this quiz: ${topic}.`;
+  const res=await callAI(prompt);
+  resultDiv.innerHTML=marked.parse(res);
+}
+
+// --- RESOURCE LIBRARY ---
+const resources={
+'Math':[
+{title:"Ratios Calculator",url:"https://www.calculatorsoup.com/calculators/math/ratios.php",type:"tool"},
+{title:"Integer Operations Game",url:"https://www.mathplayground.com/ASB_IntegerWarp.html",type:"game"},
+{title:"Equation Solver",url:"https://www.mathpapa.com/algebra-calculator.html",type:"tool"},
+{title:"Khan Academy 7th Grade Math",url:"https://www.khanacademy.org/math/cc-seventh-grade-math",type:"link"},
+{title:"Desmos Graphing Calculator",url:"https://www.desmos.com/calculator",type:"tool"},
+{title:"Prodigy Math Game",url:"https://www.prodigygame.com/",type:"game"}
+],
+'Science':[
+{title:"Periodic Table",url:"https://ptable.com/",type:"tool"},
+{title:"Cell Model Visualizer",url:"https://www.cellsalive.com/cells/cell_model.htm",type:"tool"},
+{title:"NASA Solar System",url:"https://eyes.nasa.gov/",type:"tool"},
+{title:"PhET Simulations",url:"https://phet.colorado.edu/",type:"tool"},
+{title:"National Geographic Kids",url:"https://kids.nationalgeographic.com/",type:"link"},
+{title:"Switch Zoo Game",url:"https://www.switchzoo.com/",type:"game"}
+],
+'History':[
+{title:"Ancient Civilizations",url:"https://www.historyforkids.net/ancient-history.html",type:"link"},
+{title:"Google Earth Voyager",url:"https://earth.google.com/web/voyager",type:"tool"},
+{title:"Mission US Game",url:"https://www.mission-us.org/",type:"game"},
+{title:"iCivics Government Games",url:"https://www.icivics.org/games",type:"game"}
+],
+'ELA':[
+{title:"Thesaurus.com",url:"https://www.thesaurus.com/",type:"tool"},
+{title:"Hemingway Editor",url:"https://hemingwayapp.com/",type:"tool"},
+{title:"Grammarly",url:"https://www.grammarly.com/",type:"tool"},
+{title:"Project Gutenberg",url:"https://www.gutenberg.org/",type:"link"},
+{title:"Quill.org",url:"https://www.quill.org/",type:"tool"}
+]
+};
+
+function loadResources(subject){
+  const list=document.getElementById('resource-list');
+  list.innerHTML='';
+  document.querySelectorAll('.subject-btn').forEach(b=>b.classList.remove('bg-primary','text-white'));
+  document.getElementById(`btn-${subject}`).classList.add('bg-primary','text-white');
+  resources[subject].forEach(res=>{
+    const item=document.createElement('div');
+    item.className='bg-gray-800 p-4 rounded-lg border border-gray-700 hover:border-primary transition cursor-pointer';
+    item.innerHTML=`<div class="flex justify-between items-center"><div><h4 class="font-bold text-gray-200">${res.title}</h4><span class="text-xs uppercase font-semibold text-gray-500 tracking-wider">${res.type}</span></div><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg></div>`;
+    item.onclick=()=>window.open(res.url,'_blank');
+    list.appendChild(item);
+  });
+}
+
+// --- CHANNEL PROMO POPUP ---
+function showPromo(){
+  if(localStorage.getItem('promoShown')) return;
+  localStorage.setItem('promoShown','1');
+  const overlay=document.createElement('div');
+  overlay.className='fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50';
+  overlay.innerHTML=`<div class="bg-gray-800 p-6 rounded-xl text-center max-w-sm">
+    <h2 class="text-xl font-bold mb-4 text-white">Support Me!</h2>
+    <p class="text-gray-300 mb-4">Subscribe to my channel: <strong>@cursedgamer2</strong></p>
+    <button onclick="window.open('https://www.youtube.com/@cursedgamer2','_blank');this.parentElement.parentElement.remove();" class="bg-red-600 text-white px-4 py-2 rounded font-bold">Subscribe Now</button>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+// Run promo on load
+window.addEventListener('load',()=>{showPromo(); loadResources('Math');});
 </script>
+
+</head>
+<body class="p-4 sm:p-6">
+
+<header class="mb-4 flex justify-between items-center">
+<h1 class="text-3xl font-bold text-white">7th Grade Ultimate Hub</h1>
+<p class="text-gray-400 text-sm">Study. Focus. Achieve.</p>
+<div class="flex space-x-2">
+  <button onclick="toggleSettings()" class="p-2 bg-gray-800 rounded-full hover:bg-gray-700 transition">
+    ⚙️
+  </button>
+</div>
+</header>
+
+<!-- SETTINGS PANEL -->
+<div id="settings-panel" class="hidden fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
+<div class="bg-gray-800 p-6 rounded-xl max-w-md w-full border border-gray-700">
+<h2 class="text-xl font-bold mb-4 text-white">Settings</h2>
+<div class="space-y-4">
+  <div>
+    <label class="block text-sm text-gray-400">Theme Color</label>
+    <input type="color" id="color-picker" class="w-full h-10 rounded cursor-pointer" oninput="applyTheme(this.value)">
+  </div>
+  <div>
+    <label class="block text-sm text-gray-400 mb-1">AI Provider</label>
+    <select id="ai-provider-select-settings" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+      <option value="OpenAI">OpenAI</option>
+      <option value="Gemini">Gemini</option>
+    </select>
+  </div>
+  <div class="border-t border-gray-700 pt-4">
+    <h3 class="text-lg font-bold text-red-400 mb-2">Owner Zone (API Keys)</h3>
+    <div id="owner-lock-msg">
+      <p class="text-sm text-gray-400 mb-2">Enter password to edit global keys.</p>
+      <div class="flex space-x-2">
+        <input type="password" id="owner-pass" class="flex-grow bg-gray-900 border border-gray-700 rounded p-2 text-white" placeholder="Password">
+        <button onclick="unlockOwner()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded font-bold">Unlock</button>
+      </div>
+    </div>
+    <div id="owner-controls" class="hidden space-y-3 mt-2">
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">Gemini API Key</label>
+        <input type="password" id="gemini-key" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+      </div>
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">OpenAI API Key</label>
+        <input type="password" id="openai-key" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+      </div>
+    </div>
+  </div>
+  <button onclick="saveLocalSettings()" class="w-full bg-primary text-white py-2 rounded font-bold hover:opacity-90 mt-4">Save & Close</button>
+</div>
+</div>
+</div>
+
+<!-- NAV -->
+<nav class="flex space-x-2 mb-4 overflow-x-auto pb-2 border-b border-gray-700">
+  <button onclick="openTab('ai-generators', this)" class="px-4 py-2 rounded-lg bg-gray-700 text-white font-medium whitespace-nowrap">⚡ AI Generators</button>
+  <button onclick="openTab('resources', this)" class="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 font-medium hover:bg-gray-700 whitespace-nowrap">📚 Resources</button>
+</nav>
+
+<div id="content-wrapper">
+
+<!-- AI GENERATORS -->
+<div id="ai-generators" class="tab-content p-2">
+  <div class="flex flex-col h-full">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+      <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <h3 class="text-lg font-bold text-primary mb-2">Flashcard Maker</h3>
+        <input type="text" id="flashcard-topic" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-2 text-white" placeholder="Topic (e.g. Cell Biology)">
+        <button onclick="runGenerator('flashcard')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 rounded">Generate Cards</button>
+        <div id="flashcard-result" class="mt-2 text-sm text-gray-300 max-h-32 overflow-y-auto"></div>
+      </div>
+
+      <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <h3 class="text-lg font-bold text-primary mb-2">Quiz Maker</h3>
+        <input type="text" id="quiz-topic" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-2 text-white" placeholder="Topic (e.g. American Revolution)">
+        <button onclick="runGenerator('quiz')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1 rounded">Generate Quiz</button>
+        <div id="quiz-result" class="mt-2 text-sm text-gray-300 max-h-32 overflow-y-auto"></div>
+      </div>
+
+      <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <h3 class="text-lg font-bold text-primary mb-2">AI Tutor</h3>
+        <input type="text" id="tutor-topic" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-2 text-white" placeholder="Topic (e.g. Fractions)">
+        <button onclick="runGenerator('tutor')" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-1 rounded">Teach Me</button>
+        <div id="tutor-result" class="mt-2 text-sm text-gray-300 max-h-32 overflow-y-auto"></div>
+      </div>
+
+      <div class="bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <h3 class="text-lg font-bold text-primary mb-2">Quiz Study Helper</h3>
+        <input type="text" id="quiz-helper-topic" class="w-full bg-gray-900 border border-gray-700 rounded p-2 mb-2 text-white" placeholder="Quiz Name or Topic">
+        <button onclick="runGenerator('quiz-helper')" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-1 rounded">Get Study Tips</button>
+        <div id="quiz-helper-result" class="mt-2 text-sm text-gray-300 max-h-32 overflow-y-auto"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- RESOURCES -->
+<div id="resources" class="tab-content hidden p-2">
+  <div class="flex space-x-2 mb-4 overflow-x-auto">
+    <button id="btn-Math" onclick="loadResources('Math')" class="subject-btn px-3 py-1 rounded bg-primary text-white font-medium">Math</button>
+    <button id="btn-Science" onclick="loadResources('Science')" class="subject-btn px-3 py-1 rounded bg-gray-700 text-white font-medium">Science</button>
+    <button id="btn-History" onclick="loadResources('History')" class="subject-btn px-3 py-1 rounded bg-gray-700 text-white font-medium">History</button>
+    <button id="btn-ELA" onclick="loadResources('ELA')" class="subject-btn px-3 py-1 rounded bg-gray-700 text-white font-medium">ELA</button>
+  </div>
+  <div id="resource-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+</div>
+
+</div> <!-- END content-wrapper -->
 
 </body>
 </html>
