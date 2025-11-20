@@ -9,12 +9,12 @@
 <script src="https://unpkg.com/tone@14.9.15/build/Tone.js"></script>
 <style>
   :root { --primary: #3b82f6; }
-  body { background:#0b1220; color:#e6eef8; font-family:Inter,system-ui,Segoe UI,Arial; height:100vh; margin:0; display:flex; flex-direction:column; }
+  body { background:#0b1220; color:#367588; font-family:Inter,system-ui,Segoe UI,Arial; height:100vh; margin:0; display:flex; flex-direction:column; }
   .hidden { display:none!important; }
   .tab-content { display:none; height:100%; overflow:auto; padding:1rem; }
   .active { display:block; }
   .accent { color:var(--primary); }
-  .card { background:#0f1724; border:1px solid #1f2937; padding:1rem; border-radius:.5rem; }
+  .card { background:#367588; border:1px solid #367588; padding:1rem; border-radius:.5rem; }
   .truncate-1 { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .notice { background:#7c2dff; color:white; padding:.5rem 1rem; border-radius:.5rem; }
   /* mini browser */
