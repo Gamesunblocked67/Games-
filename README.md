@@ -38,7 +38,7 @@
 // ==========================
 window.THEO_API_KEYS = {
     openai: "PUT-OPENAI-KEY-HERE",
-    gemini: "PUT-GEMINI-KEY-HERE"
+    gemini: "AIzaSyDbFvQgRDH_D9i7lWsUKBkU28JN1grh-V8"
 };
 
 // ==========================
