@@ -38,7 +38,7 @@ input, select, textarea { padding:5px; margin:5px 0; width:100%; }
     <label>OpenAI API Key:</label>
     <input type="text" id="openaiKey" placeholder="Paste OpenAI Key Here"/>
     <label>Gemini API Key:</label>
-    <input type="text" id="geminiKey" placeholder="Paste Gemini Key Here"/>
+    <input type="text" id="geminiKey" placeholder="AIzaSyDbFvQgRDH_D9i7lWsUKBkU28JN1grh-V8"/>
     <button onclick="saveApiKeys()">Save Keys</button>
   </div>
 </div>
