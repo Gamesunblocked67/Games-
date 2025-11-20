@@ -1,341 +1,218 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>StudyHub Ultra v3.0</title>
-    <style>
-        body { font-family: Arial; margin: 0; background: #111; color: #eee; }
-        header { background: #222; padding: 15px; display: flex; justify-content: space-between; }
-        .btn { padding: 10px 15px; background: #333; margin: 5px; cursor: pointer; border-radius: 6px; }
-        input, textarea, select { width: 100%; padding: 10px; border-radius: 5px; margin: 5px 0; }
-        iframe { width: 100%; height: 450px; border: none; background: #000; }
-        .hidden { display: none; }
-        .tool-box { background: #222; padding: 15px; border-radius: 10px; margin-top: 20px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Hub</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 0; padding: 0; background:#f0f0f0; }
+header { background:#333; color:#fff; padding:10px; text-align:center; }
+nav { display:flex; justify-content:center; gap:10px; background:#444; padding:5px; }
+nav button { padding:5px 10px; cursor:pointer; }
+#settingsPanel, .tool { display:none; padding:20px; background:#fff; margin:20px; border-radius:5px; }
+input, select, textarea { padding:5px; margin:5px 0; width:100%; }
+.flashcard, .quiz-question { margin-bottom:15px; padding:10px; border:1px solid #ccc; border-radius:5px; background:#fafafa; }
+.correct { color:green; }
+.wrong { color:red; }
+</style>
 </head>
-
 <body>
-<header>
-    <h2>StudyHub Ultra</h2>
-    <div>
-        <button class="btn" onclick="openTool('home')">Home</button>
-        <button class="btn" onclick="openTool('flashcards')">Flashcards</button>
-        <button class="btn" onclick="openTool('quizMaker')">Quiz Maker</button>
-        <button class="btn" onclick="openTool('quizStudy')">Quiz Study</button>
-        <button class="btn" onclick="openTool('tutor')">AI Tutor</button>
-        <button class="btn" onclick="openTool('browser')">Mini Browser</button>
-        <button class="btn" onclick="openTool('music')">Music</button>
-        <button class="btn" onclick="openTool('timer')">Timer</button>
-        <button class="btn" onclick="openTool('settings')">Settings</button>
-    </div>
-</header>
 
-<div id="content"></div>
+<header><h1>Study Hub</h1></header>
+
+<nav>
+  <button onclick="showTool('flashcards')">Flashcards</button>
+  <button onclick="showTool('quizMaker')">Quiz Maker</button>
+  <button onclick="showTool('quizStudy')">Quiz Study Tool</button>
+  <button onclick="showTool('musicPlayer')">Music Player</button>
+  <button onclick="showTool('timer')">Timer</button>
+  <button onclick="showSettings()">Settings</button>
+</nav>
+
+<div id="settingsPanel">
+  <h2>Settings (Admin)</h2>
+  <label>Password:</label>
+  <input type="password" id="adminPass" placeholder="Enter password"/>
+  <button onclick="checkPassword()">Enter</button>
+  <div id="apiKeysPanel" style="display:none;">
+    <label>OpenAI API Key:</label>
+    <input type="text" id="openaiKey" placeholder="Paste OpenAI Key Here"/>
+    <label>Gemini API Key:</label>
+    <input type="text" id="geminiKey" placeholder="Paste Gemini Key Here"/>
+    <button onclick="saveApiKeys()">Save Keys</button>
+  </div>
+</div>
+
+<!-- Flashcards Tool -->
+<div id="flashcards" class="tool">
+  <h2>Flashcards</h2>
+  <div id="flashcardContainer"></div>
+  <textarea id="flashcardInput" placeholder="Enter flashcards: term - definition, one per line"></textarea>
+  <button onclick="generateFlashcards()">Generate Flashcards</button>
+</div>
+
+<!-- Quiz Maker Tool -->
+<div id="quizMaker" class="tool">
+  <h2>Quiz Maker</h2>
+  <textarea id="quizInput" placeholder="Enter questions: question | option1,option2,option3,option4 | correctOptionNumber"></textarea>
+  <button onclick="generateQuiz()">Generate Quiz</button>
+  <div id="quizContainer"></div>
+</div>
+
+<!-- Quiz Study Tool -->
+<div id="quizStudy" class="tool">
+  <h2>Quiz Study Tool</h2>
+  <textarea id="studyQuizInput" placeholder="Enter study questions: question | option1,option2,option3,option4 | correctOptionNumber"></textarea>
+  <button onclick="generateStudyQuiz()">Generate Study Quiz</button>
+  <div id="studyQuizContainer"></div>
+</div>
+
+<!-- Music Player -->
+<div id="musicPlayer" class="tool">
+  <h2>Music Player</h2>
+  <input type="text" id="musicURL" placeholder="YouTube URL or leave blank for local file">
+  <input type="file" id="musicFile">
+  <button onclick="playMusic()">Play</button>
+  <audio id="audioPlayer" controls></audio>
+</div>
+
+<!-- Timer -->
+<div id="timer" class="tool">
+  <h2>Timer</h2>
+  <input type="number" id="timerMinutes" placeholder="Minutes"/>
+  <button onclick="startTimer()">Start Timer</button>
+  <div id="timerDisplay">00:00</div>
+</div>
 
 <script>
-// ==========================
-// THEO API KEY PLACEHOLDER
-// ==========================
+// ---------- GLOBAL API KEYS ----------
 window.THEO_API_KEYS = {
-    openai: "PUT-OPENAI-KEY-HERE",
-    gemini: "AIzaSyDbFvQgRDH_D9i7lWsUKBkU28JN1grh-V8"
+  openai: "", // <-- Paste OpenAI key here
+  gemini: ""  // <-- Paste Gemini key here
 };
 
-// ==========================
-// GLOBAL PROVIDER SELECTION
-// ==========================
-let provider = localStorage.getItem("provider") || "openai";
-
-// ==========================
-// SIMPLE TOOL LOADER
-// ==========================
-function openTool(tool) {
-    const c = document.getElementById("content");
-
-    // Hide settings unless user clicks settings
-    if (tool !== "settings") {
-        document.getElementById("adminUnlocked")?.classList?.add("hidden");
-    }
-
-    // Home
-    if (tool === "home") {
-        c.innerHTML = `
-            <h2>Welcome to StudyHub Ultra</h2>
-            <p>Select a tool from the top menu to begin.</p>
-        `;
-    }
-
-    // =======================
-    // FLASHCARD MAKER
-    // =======================
-    if (tool === "flashcards") {
-        c.innerHTML = `
-        <div class="tool-box">
-            <h3>Interactive Flashcard Maker</h3>
-            <textarea id="fcText" placeholder="Enter topic or content"></textarea>
-            <button class="btn" onclick="generateFlashcards()">Generate</button>
-            <div id="flashOutput"></div>
-        </div>`;
-    }
-
-    // =======================
-    // QUIZ MAKER
-    // =======================
-    if (tool === "quizMaker") {
-        c.innerHTML = `
-        <div class="tool-box">
-            <h3>Interactive Quiz Maker</h3>
-            <textarea id="quizPrompt" placeholder="Enter topic"></textarea>
-            <button class="btn" onclick="generateQuiz()">Generate Quiz</button>
-            <div id="quizOutput"></div>
-        </div>`;
-    }
-
-    // =======================
-    // QUIZ STUDY TOOL
-    // =======================
-    if (tool === "quizStudy") {
-        c.innerHTML = `
-        <div class="tool-box">
-            <h3>Quiz Study Tool</h3>
-            <textarea id="studyText" placeholder="Enter questions or topic"></textarea>
-            <button class="btn" onclick="generateStudyQuiz()">Start Study Quiz</button>
-            <div id="studyOutput"></div>
-        </div>`;
-    }
-
-    // =======================
-    // AI TUTOR
-    // =======================
-    if (tool === "tutor") {
-        c.innerHTML = `
-        <div class="tool-box">
-            <h3>AI Tutor</h3>
-            <select id="tutorSubject">
-                <option>Math</option>
-                <option>Science</option>
-                <option>History</option>
-                <option>English</option>
-            </select>
-            <textarea id="tutorQuestion" placeholder="Enter your question"></textarea>
-            <button class="btn" onclick="askTutor()">Ask</button>
-            <div id="tutorOutput"></div>
-        </div>`;
-    }
-
-    // =======================
-    // MINI BROWSER
-    // =======================
-    if (tool === "browser") {
-        c.innerHTML = `
-        <div class="tool-box">
-            <h3>Mini Browser</h3>
-            <input id="browseURL" placeholder="Enter a website URL">
-            <button class="btn" onclick="loadBrowser()">Go</button>
-            <iframe id="browserFrame"></iframe>
-        </div>`;
-    }
-
-    // =======================
-    // MUSIC PLAYER
-    // =======================
-    if (tool === "music") {
-        c.innerHTML = `
-        <div class="tool-box">
-            <h3>Music Player</h3>
-            <input id="ytLink" placeholder="YouTube link">
-            <button class="btn" onclick="playYouTube()">Play YT</button>
-            <br><br>
-            <input type="file" id="localFile" accept="audio/*" onchange="playLocalFile()">
-            <audio id="audioPlayer" controls></audio>
-        </div>`;
-    }
-
-    // =======================
-    // TIMER
-    // =======================
-    if (tool === "timer") {
-        c.innerHTML = `
-        <div class="tool-box">
-            <h3>Timer</h3>
-            <input id="timerMin" placeholder="Minutes">
-            <button class="btn" onclick="startTimer()">Start</button>
-            <h2 id="timerDisplay"></h2>
-        </div>`;
-    }
-
-    // =======================
-    // SETTINGS (ADMIN)
-    // =======================
-    if (tool === "settings") {
-        c.innerHTML = `
-        <div class="tool-box" id="adminLogin">
-            <h3>Enter Admin Password</h3>
-            <input id="adminPass" type="password" placeholder="Password">
-            <button class="btn" onclick="verifyAdmin()">Unlock</button>
-        </div>
-
-        <div id="adminUnlocked" class="hidden">
-            <div class="tool-box">
-                <h3>Settings</h3>
-                <label>AI Provider</label>
-                <select id="providerSel" onchange="changeProvider()">
-                    <option value="openai" ${provider==="openai"?"selected":""}>OpenAI</option>
-                    <option value="gemini" ${provider==="gemini"?"selected":""}>Gemini</option>
-                </select>
-                <p>API Keys are stored in theo.js</p>
-            </div>
-        </div>`;
-    }
+// ---------- TOOL SWITCH ----------
+function showTool(toolId){
+  document.querySelectorAll('.tool').forEach(t=>t.style.display='none');
+  document.getElementById('settingsPanel').style.display='none';
+  document.getElementById(toolId).style.display='block';
 }
 
-// ============================
-// ADMIN LOGIN
-// ============================
-function verifyAdmin() {
-    const pass = document.getElementById("adminPass").value;
-    if (pass === "owner123") {
-        document.getElementById("adminLogin").classList.add("hidden");
-        document.getElementById("adminUnlocked").classList.remove("hidden");
-    } else {
-        alert("Wrong password");
+// ---------- SETTINGS ----------
+function showSettings(){
+  document.querySelectorAll('.tool').forEach(t=>t.style.display='none');
+  document.getElementById('settingsPanel').style.display='block';
+  document.getElementById('apiKeysPanel').style.display='none';
+}
+
+function checkPassword(){
+  if(document.getElementById('adminPass').value==='owner123'){
+    document.getElementById('apiKeysPanel').style.display='block';
+    alert("Access granted");
+  } else { alert("Wrong password"); }
+}
+
+function saveApiKeys(){
+  window.THEO_API_KEYS.openai = document.getElementById('openaiKey').value;
+  window.THEO_API_KEYS.gemini = document.getElementById('geminiKey').value;
+  alert("API keys saved globally!");
+}
+
+// ---------- FLASHCARDS ----------
+function generateFlashcards(){
+  const container = document.getElementById('flashcardContainer');
+  container.innerHTML='';
+  const lines = document.getElementById('flashcardInput').value.split('\n');
+  lines.forEach(line=>{
+    const [term,def] = line.split('-');
+    if(term && def){
+      const div = document.createElement('div');
+      div.className='flashcard';
+      div.innerHTML=`<b>${term.trim()}</b><br>${def.trim()}`;
+      container.appendChild(div);
     }
+  });
 }
 
-// ============================
-// PROVIDER CHANGE
-// ============================
-function changeProvider() {
-    provider = document.getElementById("providerSel").value;
-    localStorage.setItem("provider", provider);
-}
-
-// ============================
-// MUSIC PLAYER CODE
-// ============================
-function playYouTube() {
-    let link = document.getElementById("ytLink").value.trim();
-    if (!link.includes("youtube.com") && !link.includes("youtu.be")) {
-        alert("Invalid YouTube link");
-        return;
+// ---------- QUIZ MAKER ----------
+function generateQuiz(){
+  const container = document.getElementById('quizContainer');
+  container.innerHTML='';
+  const lines = document.getElementById('quizInput').value.split('\n');
+  lines.forEach((line,i)=>{
+    const parts = line.split('|');
+    if(parts.length===3){
+      const question = parts[0].trim();
+      const options = parts[1].split(',').map(o=>o.trim());
+      const correct = parseInt(parts[2].trim());
+      const div = document.createElement('div');
+      div.className='quiz-question';
+      div.innerHTML=`<b>${i+1}. ${question}</b><br>`;
+      options.forEach((opt,j)=>{
+        const btn = document.createElement('button');
+        btn.textContent=opt;
+        btn.onclick=()=>{ btn.className = (j+1===correct)? 'correct':'wrong'; }
+        div.appendChild(btn);
+      });
+      container.appendChild(div);
     }
-    let audio = document.getElementById("audioPlayer");
-    audio.src = link;
-    audio.play();
+  });
 }
-function playLocalFile() {
-    const file = document.getElementById("localFile").files[0];
-    if (file) {
-        document.getElementById("audioPlayer").src = URL.createObjectURL(file);
+
+// ---------- QUIZ STUDY ----------
+function generateStudyQuiz(){
+  const container = document.getElementById('studyQuizContainer');
+  container.innerHTML='';
+  const lines = document.getElementById('studyQuizInput').value.split('\n');
+  lines.forEach((line,i)=>{
+    const parts = line.split('|');
+    if(parts.length===3){
+      const question = parts[0].trim();
+      const options = parts[1].split(',').map(o=>o.trim());
+      const correct = parseInt(parts[2].trim());
+      const div = document.createElement('div');
+      div.className='quiz-question';
+      div.innerHTML=`<b>${i+1}. ${question}</b><br>`;
+      options.forEach((opt,j)=>{
+        const btn = document.createElement('button');
+        btn.textContent=opt;
+        btn.onclick=()=>{ btn.className = (j+1===correct)? 'correct':'wrong'; }
+        div.appendChild(btn);
+      });
+      container.appendChild(div);
     }
+  });
 }
 
-// ============================
-// BROWSER LOADER
-// ============================
-function loadBrowser() {
-    let url = document.getElementById("browseURL").value;
-    if (!url.startsWith("http")) url = "https://" + url;
-    document.getElementById("browserFrame").src = url;
+// ---------- MUSIC PLAYER ----------
+function playMusic(){
+  const player = document.getElementById('audioPlayer');
+  const url = document.getElementById('musicURL').value;
+  const file = document.getElementById('musicFile').files[0];
+  if(file){
+    player.src=URL.createObjectURL(file);
+  } else if(url){
+    player.src=url;
+  }
+  player.play();
 }
 
-// ============================
-// TIMER
-// ============================
-function startTimer() {
-    let min = parseInt(document.getElementById("timerMin").value);
-    let sec = min * 60;
-    let display = document.getElementById("timerDisplay");
-    let timer = setInterval(() => {
-        let m = Math.floor(sec / 60);
-        let s = sec % 60;
-        display.innerHTML = `${m}:${s.toString().padStart(2,"0")}`;
-        sec--;
-        if (sec < 0) { clearInterval(timer); display.innerHTML = "DONE"; }
-    }, 1000);
+// ---------- TIMER ----------
+let timerInterval;
+function startTimer(){
+  clearInterval(timerInterval);
+  let mins = parseInt(document.getElementById('timerMinutes').value);
+  let secs = mins*60;
+  const display = document.getElementById('timerDisplay');
+  timerInterval = setInterval(()=>{
+    let m = Math.floor(secs/60);
+    let s = secs%60;
+    display.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    if(secs<=0) clearInterval(timerInterval);
+    secs--;
+  },1000);
 }
 
-// ============================
-// AI REQUEST HANDLER
-// ============================
-async function ai(prompt) {
-    let key = provider === "openai"
-        ? window.THEO_API_KEYS.openai
-        : window.THEO_API_KEYS.gemini;
-
-    if (provider === "openai") {
-        let r = await fetch("https://api.openai.com/v1/chat/completions", {
-            method:"POST",
-            headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+key },
-            body: JSON.stringify({
-                model:"gpt-4o-mini",
-                messages:[{role:"user",content:prompt}]
-            })
-        });
-        let j = await r.json();
-        return j.choices?.[0]?.message?.content || "Error.";
-    }
-
-    if (provider === "gemini") {
-        let r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-            method:"POST",
-            headers:{ "Content-Type":"application/json" },
-            body: JSON.stringify({
-                contents:[{parts:[{text:prompt}]}]
-            })
-        });
-        let j = await r.json();
-        return j.candidates?.[0]?.content?.parts?.[0]?.text || "Error.";
-    }
-}
-
-// ============================
-// FLASHCARD MAKER
-// ============================
-async function generateFlashcards() {
-    let text = document.getElementById("fcText").value;
-    let out = document.getElementById("flashOutput");
-    out.innerHTML = "Generating...";
-    let res = await ai(`Make flashcards with term then answer: ${text}`);
-    out.innerHTML = `<h3>Flashcards</h3>${res}`;
-}
-
-// ============================
-// QUIZ MAKER
-// ============================
-async function generateQuiz() {
-    let text = document.getElementById("quizPrompt").value;
-    let out = document.getElementById("quizOutput");
-    out.innerHTML = "Generating...";
-    let res = await ai(`Make a multiple choice quiz with answers hidden at bottom. Topic: ${text}`);
-    out.innerHTML = res;
-}
-
-// ============================
-// QUIZ STUDY
-// ============================
-async function generateStudyQuiz() {
-    let text = document.getElementById("studyText").value;
-    let out = document.getElementById("studyOutput");
-    out.innerHTML = "Generating...";
-    let res = await ai(`Create a study quiz one question at a time. Allow user to answer. Format: Q:, Choices:, Correct:, Explanation:. Topic: ${text}`);
-    out.innerHTML = res;
-}
-
-// ============================
-// AI TUTOR
-// ============================
-async function askTutor() {
-    let subject = document.getElementById("tutorSubject").value;
-    let q = document.getElementById("tutorQuestion").value;
-    let out = document.getElementById("tutorOutput");
-    out.innerHTML = "Thinking...";
-    let res = await ai(`You are an AI tutor for ${subject}. Explain simply: ${q}`);
-    out.innerHTML = res;
-}
-
-// Load home by default
-openTool("home");
 </script>
 
 </body>
