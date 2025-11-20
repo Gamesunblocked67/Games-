@@ -1,794 +1,346 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>7th Grade Ultimate Hub — Local Build</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://unpkg.com/tone@14.9.15/build/Tone.js"></script>
+<title>7th Grade Ultimate Hub — Final</title>
 <style>
-  :root { --primary: #3b82f6; }
-  body { background:#0b1220; color:#367588; font-family:Inter,system-ui,Segoe UI,Arial; height:100vh; margin:0; display:flex; flex-direction:column; }
-  .hidden { display:none!important; }
-  .tab-content { display:none; height:100%; overflow:auto; padding:1rem; }
-  .active { display:block; }
-  .accent { color:var(--primary); }
-  .card { background:#367588; border:1px solid #367588; padding:1rem; border-radius:.5rem; }
-  .truncate-1 { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .notice { background:#7c2dff; color:white; padding:.5rem 1rem; border-radius:.5rem; }
-  /* mini browser */
-  #mini-browser-modal iframe { width:100%; height:60vh; border:0; border-radius:.375rem; }
+:root{
+  --bg:#4c1d95;
+  --card:#1e1b4b;
+  --muted:#cfc4ff;
+  --blue:#3b82f6;
+  --blue-dark:#1e40af;
+  --accent:#312e81;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;
+  background:var(--bg);
+  color:#fff;
+  -webkit-font-smoothing:antialiased;
+}
+.app{max-width:1100px;margin:18px auto;padding:18px;}
+.header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;}
+.title h1{margin:0;font-size:20px} .title p{margin:0;color:var(--muted);font-size:13px}
+.menu{display:flex;gap:8px;flex-wrap:wrap}
+.btn{background:var(--blue);color:white;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.08)}
+.container{display:grid;grid-template-columns:1fr 360px;gap:16px;align-items:start}
+.card{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.25)}
+.input, textarea, select{width:100%;padding:8px;border-radius:8px;border:0;background:var(--accent);color:white;margin-top:8px;font-size:14px}
+.small{font-size:13px;color:var(--muted)}
+.flash{display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center}
+.card-face{min-height:84px;width:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#24163f,#312e81);padding:12px;border-radius:10px;font-size:18px}
+.saved-list{max-height:48vh;overflow:auto;padding:6px;border-radius:8px;background:linear-gradient(180deg,#21173b,#24163f)}
+.kv{display:flex;justify-content:space-between;gap:8px;align-items:center}
+@media(max-width:980px){.container{grid-template-columns:1fr}.sidebar{order:2}}
+.notice{background:rgba(0,0,0,0.25);padding:8px;border-radius:8px;color:var(--muted)}
+.link{color:var(--blue);cursor:pointer;text-decoration:underline}
+.code{background:#0f172a;padding:8px;border-radius:6px;overflow:auto}
 </style>
 </head>
-<body class="p-4">
+<body>
+<div class="app">
+  <div class="header">
+    <div class="title">
+      <h1>7th Grade Ultimate Hub</h1>
+      <p>Study • Focus • Achieve — flashcards, quizzes, AI tutor</p>
+    </div>
 
-<div id="support-popup" class="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center hidden">
-  <div class="bg-gray-900 p-6 rounded-xl w-full max-w-lg border border-gray-700 text-center relative">
-    <button id="support-close-x" class="absolute right-3 top-3 text-gray-400 hover:text-white">✕</button>
-    <h2 class="text-2xl font-bold mb-2">Support Me — Subscribe!</h2>
-    <p class="text-gray-300 mb-4">Subscribe to my channel to support the project: <span class="font-semibold">@cursedgamer2</span></p>
-    <div class="flex justify-center gap-3">
-      <button id="subscribe-open" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded font-bold">Subscribe @cursedgamer2</button>
-      <button id="support-dismiss" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded">Dismiss</button>
-    </div>
-  </div>
-</div>
+    <div class="menu">
+      <button class="btn" onclick="showPanel('flash')">Flashcards</button>
+      <button class="btn" onclick="showPanel('quiz')">Quiz Maker</button>
+      <button class="btn" onclick="showPanel('study')">Quiz Study</button>
+      <button class="btn" onclick="showPanel('tutor')">AI Tutor</button>
+      <button class="btn" onclick="showPanel('settings')">Settings</button>
+    </div>
+  </div>
 
-<header class="flex items-center justify-between mb-4">
-  <div>
-    <h1 class="text-2xl font-bold">7th Grade Ultimate Hub</h1>
-    <p class="text-sm text-gray-400">Study • Focus • Achieve</p>
-  </div>
-  <div class="flex items-center gap-3">
-    <button id="open-settings" class="p-2 rounded bg-gray-800 hover:bg-gray-700">⚙️</button>
-    <button id="open-admin" class="p-2 rounded bg-gray-800 hover:bg-gray-700">🛠 Admin</button>
-    <button id="open-mini-browser" class="p-2 rounded bg-gray-800 hover:bg-gray-700">🌐 Mini Browser</button>
-  </div>
-</header>
+  <div class="container">
+    <main>
+      <div id="dec1" class="card notice" style="display:none;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Notice:</strong> Effective Dec 1 — subscription required for some features. Click "I Subscribed" once subscribed.</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" onclick="localStorage.setItem('sg2_subscribed','1'); updateDecNotice()">I Subscribed</button>
+            <button class="btn ghost" onclick="localStorage.setItem('sg2_notice_dismiss','1'); updateDecNotice()">Dismiss</button>
+          </div>
+        </div>
+      </div>
 
-<div id="dec1-notice" class="mb-4 hidden">
-  <div class="notice flex items-center justify-between">
-    <div>
-      <strong>Notice:</strong> Effective Dec 1 — you must be subscribed to @cursedgamer2 to use the AI Quiz Maker & AI Tutor.
-      (Click "I Subscribed" after subscribing.) 
-    </div>
-    <div class="flex items-center gap-2">
-      <button id="i-subscribed" class="bg-green-600 px-3 py-1 rounded font-bold">I Subscribed</button>
-      <button id="dismiss-notice" class="bg-gray-800 px-3 py-1 rounded">Dismiss</button>
-    </div>
-  </div>
-</div>
+      <section id="panel-flash" class="card panel">
+        <h2 style="margin:0 0 8px 0">Flashcards — interactive</h2>
+        <div class="kv small">
+          <div>AI generate or paste your own (one per line: <code>front - back</code>)</div>
+          <div>
+            <button class="btn" onclick="aiGenerateFlash()">AI Generate</button>
+            <button class="btn" onclick="parseFlashInput()">Create</button>
+          </div>
+        </div>
 
-<nav class="flex gap-2 mb-4">
-  <button data-tab="ai" class="nav-btn px-3 py-2 rounded bg-gray-800 hover:bg-gray-700">⚡ AI Tools</button>
-  <button data-tab="resources" class="nav-btn px-3 py-2 rounded bg-gray-800 hover:bg-gray-700">📚 Resources</button>
-  <button data-tab="games" class="nav-btn px-3 py-2 rounded bg-gray-800 hover:bg-gray-700">🕹️ Study Games</button>
-  <button data-tab="focus" class="nav-btn px-3 py-2 rounded bg-gray-800 hover:bg-gray-700">🎧 Focus</button>
-  <button data-tab="dashboard" class="nav-btn px-3 py-2 rounded bg-gray-800 hover:bg-gray-700">📂 Dashboard</button>
-</nav>
+        <textarea id="flash-input" class="input" rows="4" placeholder="Term - Definition"></textarea>
 
-<main id="main" class="flex-1 overflow-auto">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <input id="flash-topic" class="input" placeholder="If AI generate, enter topic (e.g. Photosynthesis)" />
+          <select id="flash-count" class="input" style="width:120px">
+            <option value="5">5 cards</option>
+            <option value="8">8 cards</option>
+            <option value="10">10 cards</option>
+          </select>
+        </div>
 
-    <section id="tab-ai" class="tab-content active">
-    <div class="grid md:grid-cols-2 gap-4">
-            <div class="card">
-        <h3 class="font-bold mb-2">AI Flashcard Maker</h3>
-        <input id="flashcard-topic" placeholder="Topic (e.g. Cell Biology)" class="w-full mb-2 p-2 bg-gray-900 rounded" />
-        <div class="flex gap-2">
-          <button id="gen-flash" class="bg-indigo-600 px-3 py-2 rounded">Generate</button>
-          <button id="save-flash" class="bg-gray-700 px-3 py-2 rounded">Save</button>
-        </div>
-        <div id="flash-result" class="mt-3 text-sm text-gray-200 max-h-48 overflow-auto"></div>
-      </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn" onclick="startPractice()">Practice</button>
+          <button class="btn" onclick="saveCurrent('flash')">Save Set</button>
+          <button class="btn ghost" onclick="clearFlashInput()">Clear Input</button>
+        </div>
 
-            <div class="card">
-        <h3 class="font-bold mb-2">AI Quiz Maker <span id="quiz-locked-badge" class="text-sm ml-2 text-yellow-400 hidden">Locked by Dec 1 rule</span></h3>
-        <input id="quiz-topic" placeholder="Topic (e.g. American Revolution)" class="w-full mb-2 p-2 bg-gray-900 rounded" />
-        <div class="flex gap-2">
-          <button id="gen-quiz" class="bg-green-600 px-3 py-2 rounded">Generate</button>
-          <button id="save-quiz" class="bg-gray-700 px-3 py-2 rounded">Save</button>
-        </div>
-        <div id="quiz-result" class="mt-3 text-sm text-gray-200 max-h-48 overflow-auto"></div>
-      </div>
+        <div id="flash-list" style="margin-top:12px"></div>
 
-            <div class="card">
-        <h3 class="font-bold mb-2">AI Tutor <span id="tutor-locked-badge" class="text-sm ml-2 text-yellow-400 hidden">Locked by Dec 1 rule</span></h3>
-        <input id="tutor-topic" placeholder="Ask a question or enter a topic" class="w-full mb-2 p-2 bg-gray-900 rounded" />
-        <div class="flex gap-2">
-          <button id="gen-tutor" class="bg-purple-600 px-3 py-2 rounded">Ask Tutor</button>
-          <button id="save-tutor" class="bg-gray-700 px-3 py-2 rounded">Save</button>
-        </div>
-        <div id="tutor-result" class="mt-3 text-sm text-gray-200 max-h-48 overflow-auto"></div>
-      </div>
+        <div id="practice-area" style="display:none;margin-top:14px">
+          <div class="flash">
+            <div id="card-index" class="small">Card 1 / 1</div>
+            <div id="card-face" class="card-face">...</div>
+            <div style="display:flex;gap:8px;width:100%;justify-content:center;margin-top:8px">
+              <button class="btn" onclick="flipCard()">Flip</button>
+              <button class="btn" onclick="prevCard()">Prev</button>
+              <button class="btn" onclick="nextCard()">Next</button>
+              <button class="btn ghost" onclick="markKnown()">Mark Known</button>
+            </div>
+          </div>
+        </div>
+      </section>
 
-            <div class="card">
-        <h3 class="font-bold mb-2">Quiz Study Helper</h3>
-        <input id="helper-topic" placeholder="Quiz name or topic to study" class="w-full mb-2 p-2 bg-gray-900 rounded" />
-        <div class="flex gap-2">
-          <button id="gen-helper" class="bg-yellow-500 px-3 py-2 rounded">Get Study Tips</button>
-          <button id="save-helper" class="bg-gray-700 px-3 py-2 rounded">Save</button>
-        </div>
-        <div id="helper-result" class="mt-3 text-sm text-gray-200 max-h-48 overflow-auto"></div>
-      </div>
-    </div>
-  </section>
+      <section id="panel-quiz" class="card panel" style="display:none">
+        <h2 style="margin:0 0 8px 0">Quiz Maker — create & play</h2>
+        <div class="kv small">
+          <div>AI generate multiple-choice quizzes or create manual questions</div>
+          <div>
+            <button class="btn" onclick="aiGenerateQuiz()">AI Generate</button>
+            <button class="btn" onclick="createManualQuiz()">Create Manual</button>
+          </div>
+        </div>
 
-    <section id="tab-resources" class="tab-content">
-    <div class="flex gap-3 mb-3">
-      <button id="btn-Math" class="px-3 py-1 rounded bg-primary">Math</button>
-      <button id="btn-Science" class="px-3 py-1 rounded bg-gray-800">Science</button>
-      <button id="btn-History" class="px-3 py-1 rounded bg-gray-800">History</button>
-      <button id="btn-ELA" class="px-3 py-1 rounded bg-gray-800">ELA</button>
-    </div>
-    <div id="resource-list" class="grid sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
-  </section>
+        <textarea id="quiz-input" class="input" rows="3" placeholder="Topic or manual quiz format"></textarea>
 
-    <section id="tab-games" class="tab-content">
-    <h3 class="font-bold mb-3">Study Games (Open in new tab)</h3>
-    <div id="game-list" class="grid sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
-  </section>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <select id="quiz-count" class="input" style="width:120px">
+            <option value="3">3 Qs</option>
+            <option value="5" selected>5 Qs</option>
+            <option value="8">8 Qs</option>
+          </select>
+          <button class="btn" onclick="saveCurrent('quiz')">Save Quiz</button>
+          <button class="btn ghost" onclick="clearQuizInput()">Clear</button>
+        </div>
 
-    <section id="tab-focus" class="tab-content">
-    <div class="grid md:grid-cols-2 gap-4">
-      <div class="card">
-        <h3 class="font-bold mb-2">Focus Timer</h3>
-        <div class="flex gap-2 mb-2">
-          <button onclick="startTimer(25)" class="bg-blue-600 px-3 py-2 rounded">25m</button>
-          <button onclick="startTimer(50)" class="bg-blue-600 px-3 py-2 rounded">50m</button>
-          <button onclick="resetTimer()" class="bg-gray-700 px-3 py-2 rounded">Reset</button>
-        </div>
-        <div id="timer-display" class="text-3xl font-bold">00:00</div>
-      </div>
+        <div id="quiz-area" style="margin-top:12px"></div>
+      </section>
 
-      <div class="card">
-        <h3 class="font-bold mb-2">Focus Noise (Tone.js)</h3>
-        <button id="noise-btn" class="bg-gray-700 px-3 py-2 rounded">Start Focus Noise</button>
-      </div>
-    </div>
-  </section>
+      <section id="panel-study" class="card panel" style="display:none">
+        <h2 style="margin:0 0 8px 0">Quiz Study Tool — practice & repeat weak items</h2>
+        <div class="kv small">
+          <div>Choose saved quiz or flash set to practice</div>
+          <div>
+            <select id="study-source" class="input" style="width:220px"></select>
+            <button class="btn" onclick="startStudy()">Start</button>
+          </div>
+        </div>
+        <div id="study-area" style="margin-top:12px"></div>
+      </section>
 
-    <section id="tab-dashboard" class="tab-content">
-    <h3 class="font-bold mb-3">My Saved Study Items</h3>
-    <div id="dashboard-list" class="space-y-3"></div>
-    <div class="mt-4">
-      <button id="export-data" class="bg-gray-700 px-3 py-2 rounded">Export JSON</button>
-      <button id="import-data" class="bg-gray-700 px-3 py-2 rounded">Import JSON</button>
-      <input id="import-file" type="file" accept="application/json" class="hidden"/>
-    </div>
-  </section>
+      <section id="panel-tutor" class="card panel" style="display:none">
+        <h2 style="margin:0 0 8px 0">AI Tutor — Ask a question</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="tutor-q" class="input" placeholder="Ask: Explain mitosis in simple terms" />
+          <button class="btn" onclick="askTutor()">Ask</button>
+        </div>
+        <div id="tutor-response" style="margin-top:12px"></div>
+        <div class="small" style="margin-top:8px">Tutor uses the selected provider and the Global key (then personal). If no key available, a local demo answer is returned.</div>
+      </section>
+    </main>
 
-</main>
+    <aside class="sidebar">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="small">AI Provider</div>
+            <select id="provider-select" class="input">
+              <option value="OpenAI">OpenAI</option>
+              <option value="Gemini">Gemini (Google Generative)</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:8px">
+          <div class="small">Global API Key (stored locally)</div>
+          <input id="global-key" class="input" placeholder="Paste global API key here (optional)" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" onclick="saveGlobalKey()">Save Global Key</button>
+            <button class="btn ghost" onclick="clearGlobalKey()">Clear</button>
+          </div>
+          <div class="small" style="margin-top:8px;color:var(--muted)">Global key is saved to localStorage. For a truly site-wide key for all visitors host a server-side proxy (example included).</div>
+        </div>
+      </div>
 
-<div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-70 z-40 flex items-center justify-center hidden">
-  <div class="bg-gray-900 p-6 rounded-xl w-full max-w-md border border-gray-700">
-    <h3 class="text-xl font-bold mb-3">Settings</h3>
-    <div class="mb-3">
-      <label class="block text-sm text-gray-300 mb-1">Theme Color</label>
-      <input id="color-picker" type="color" class="w-full h-10 rounded"/>
-    </div>
-    <div class="mb-3">
-      <label class="block text-sm text-gray-300 mb-1">AI Provider</label>
-      <select id="ai-provider-select-settings" class="w-full p-2 rounded bg-gray-800">
-        <option value="OpenAI">OpenAI</option>
-        <option value="Gemini">Gemini</option>
-      </select>
-    </div>
+      <div class="card">
+        <div class="small">Personal API Key (fallback)</div>
+        <input id="personal-key" class="input" placeholder="Personal API key (optional)" />
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" onclick="savePersonalKey()">Save</button>
+          <button class="btn ghost" onclick="clearPersonalKey()">Clear</button>
+        </div>
+      </div>
 
-    <div class="border-t border-gray-800 pt-3">
-      <h4 class="font-bold text-red-400 mb-2">Owner Zone (API Keys)</h4>
-      <div id="owner-lock-msg">
-        <p class="text-sm text-gray-400 mb-2">Enter password to edit global keys.</p>
-        <div class="flex gap-2">
-          <input id="owner-pass" type="password" placeholder="Password" class="flex-1 p-2 rounded bg-gray-800"/>
-          <button id="unlock-owner-btn" class="bg-gray-700 px-3 py-2 rounded">Unlock</button>
-        </div>
-      </div>
-      <div id="owner-controls" class="mt-3 hidden space-y-2">
-        <div>
-          <label class="text-sm text-gray-300">OpenAI Key</label>
-          <input id="openai-key" type="password" placeholder="sk-..." class="w-full p-2 rounded bg-gray-800"/>
-        </div>
-        <div>
-          <label class="text-sm text-gray-300">Gemini Key</label>
-          <input id="gemini-key" type="password" placeholder="Gemini key" class="w-full p-2 rounded bg-gray-800"/>
-        </div>
-        <div class="flex gap-2">
-          <button id="save-keys" class="bg-green-600 px-3 py-2 rounded">Save Keys</button>
-          <button id="export-keys" class="bg-gray-700 px-3 py-2 rounded">Export Keys</button>
-          <button id="import-keys" class="bg-gray-700 px-3 py-2 rounded">Import Keys</button>
-        </div>
-      </div>
-    </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>Saved Sets</strong>
+          <div><button class="btn ghost" onclick="exportSaved()">Export</button></div>
+        </div>
+        <div id="saved-list" class="saved-list" style="margin-top:8px"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" onclick="importSaved()">Import</button>
+          <button class="btn ghost" onclick="clearSaved()">Clear All</button>
+        </div>
+      </div>
 
-    <div class="mt-4 flex justify-end gap-2">
-      <button id="settings-save" class="bg-primary px-4 py-2 rounded">Save & Close</button>
-      <button id="settings-cancel" class="bg-gray-700 px-4 py-2 rounded">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<div id="admin-modal" class="fixed inset-0 bg-black bg-opacity-70 z-40 flex items-center justify-center hidden">
-  <div class="bg-gray-900 p-6 rounded-xl w-full max-w-lg border border-gray-700">
-    <h3 class="text-xl font-bold mb-3">Admin Panel</h3>
-    <p class="text-sm text-gray-300 mb-3">Owner: use password <code>owner123</code> to unlock settings in Settings panel.</p>
-    <div class="grid md:grid-cols-2 gap-4">
-      <div class="card">
-        <h4 class="font-bold mb-2">Site Controls</h4>
-        <button id="clear-dashboard" class="bg-red-600 px-3 py-2 rounded w-full">Clear All Dashboard Items</button>
-      </div>
-      <div class="card">
-        <h4 class="font-bold mb-2">Quick Keys</h4>
-        <button id="fill-demo-keys" class="bg-gray-700 px-3 py-2 rounded w-full">Fill Demo Keys (placeholder)</button>
-      </div>
-    </div>
-
-    <div class="mt-4 flex justify-end">
-      <button id="admin-close" class="bg-gray-700 px-3 py-2 rounded">Close</button>
-    </div>
-  </div>
-</div>
-
-<div id="mini-browser-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-start justify-center hidden">
-  <div class="bg-gray-900 rounded-xl w-full max-w-3xl mt-8 p-4 border border-gray-700">
-    <div class="flex gap-2 mb-3">
-      <input id="mini-url" class="flex-1 p-2 rounded bg-gray-800" placeholder="https://example.com"/>
-      <button id="mini-go" class="bg-primary px-3 py-2 rounded">Go</button>
-      <button id="mini-close" class="bg-gray-700 px-3 py-2 rounded">Close</button>
-    </div>
-    <iframe id="mini-frame" src="about:blank" class="w-full h-[60vh] rounded"></iframe>
-  </div>
+      <div class="card">
+        <div class="small">Mini Browser</div>
+        <input id="mini-url" class="input" placeholder="https://example.com" />
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" onclick="openMini()">Open</button>
+          <button class="btn ghost" onclick="document.getElementById('mini-url').value=''">Clear</button>
+        </div>
+        <iframe id="mini-frame" style="width:100%;height:220px;margin-top:8px;border-radius:8px;border:0;background:white"></iframe>
+      </div>
+    </aside>
+  </div>
 </div>
 
 <script>
-/* ---------------------
-   STATE & UTILITIES
-   --------------------- */
-const STORAGE_PREFIX = 'sg2_'; // study hub local prefix
-const KEYS_STORE = STORAGE_PREFIX + 'keys';
-const SETTINGS_STORE = STORAGE_PREFIX + 'settings';
-const DASHBOARD_STORE = STORAGE_PREFIX + 'dashboard';
-const SUBSCRIBED_FLAG = STORAGE_PREFIX + 'subscribed';
+const STORE_PREFIX = 'sg2_';
+const STORE_SAVED = STORE_PREFIX + 'saved';
+const STORE_GLOBAL = STORE_PREFIX + 'global_key';
+const STORE_PERSONAL = STORE_PREFIX + 'personal_key';
+const STORE_PROVIDER = STORE_PREFIX + 'provider';
+function setLS(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+function getLS(k, fallback=null){ const v = localStorage.getItem(k); if(!v) return fallback; try{ return JSON.parse(v);}catch(e){return fallback;} }
+function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"']/g,(m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 
-// default app state
-const app = {
-  aiProvider: 'OpenAI',
-  keys: { openai: '', gemini: '' },
-};
-function saveSettingsToStorage(){ localStorage.setItem(SETTINGS_STORE, JSON.stringify({ aiProvider: app.aiProvider })); }
-function loadSettingsFromStorage(){
-  const s = localStorage.getItem(SETTINGS_STORE);
-  if(s) {
-    try{ const o=JSON.parse(s); if(o.aiProvider) app.aiProvider=o.aiProvider; document.getElementById('ai-provider-select-settings').value = app.aiProvider; }
-    catch(e){}
-  }
-}
-function saveKeysToStorage(){ localStorage.setItem(KEYS_STORE, JSON.stringify(app.keys)); }
-function loadKeysFromStorage(){ const s = localStorage.getItem(KEYS_STORE); if(s){ try{ app.keys = JSON.parse(s); }catch(e){} } }
+let saved = getLS(STORE_SAVED, []);
+let currentSet = { id:null, title:'Untitled', cards:[] };
+let currentQuiz = null;
+let practiceIndex = 0;
+let showingBack = false;
+let studyQueue = [], studyResults = [];
 
-// Utility function to apply theme color from storage on load
-function applyThemeFromPicker(){
-  const color = localStorage.getItem(STORAGE_PREFIX + 'themeColor') || '#3b82f6';
-  document.documentElement.style.setProperty('--primary', color);
-  const picker = document.getElementById('color-picker');
-  if(picker) picker.value = color;
-}
-
-/* ---------------------
-   STARTUP
-   --------------------- */
-loadKeysFromStorage();
-loadSettingsFromStorage();
-document.addEventListener('DOMContentLoaded', ()=> {
-  // show popup once per session unless dismissed earlier
-  if(!sessionStorage.getItem('suppressedPopup')) {
-    document.getElementById('support-popup').classList.remove('hidden');
-  }
-  setupNav();
-  setupResourcesAndGames();
-  setupDecNotice();
-  applyThemeFromPicker();
-  renderDashboard();
+document.addEventListener('DOMContentLoaded', ()=>{
+  const provider = localStorage.getItem(STORE_PROVIDER) || 'OpenAI';
+  document.getElementById('provider-select').value = provider;
+  document.getElementById('global-key').value = localStorage.getItem(STORE_GLOBAL) || '';
+  document.getElementById('personal-key').value = localStorage.getItem(STORE_PERSONAL) || '';
+  renderSavedList();
+  updateDecNotice();
+  populateStudySources();
+  showPanel('flash');
 });
 
-/* ---------------------
-   NAV & TABS
-   --------------------- */
-function setupNav(){
-  document.querySelectorAll('.nav-btn').forEach(b=>{
-    b.addEventListener('click', ()=> {
-      const tab = b.getAttribute('data-tab');
-      showTab(tab);
-    });
-  });
-  // show default 'ai'
-  showTab('ai');
-
-  // settings open
-  document.getElementById('open-settings').addEventListener('click', ()=> openSettingsModal());
-  document.getElementById('open-admin').addEventListener('click', ()=> openAdminModal());
-  document.getElementById('open-mini-browser').addEventListener('click', ()=> openMiniBrowser());
+function updateDecNotice(){
+  const dismissed = localStorage.getItem('sg2_notice_dismiss');
+  const subscribed = localStorage.getItem('sg2_subscribed');
+  const now = new Date();
+  const dec1 = new Date(now.getFullYear(), 11, 1);
+  const el = document.getElementById('dec1');
+  if(now >= dec1 && !dismissed && !subscribed){ el.style.display = 'block'; } else { el.style.display = 'none'; }
 }
+function showPanel(name){ document.querySelectorAll('.panel').forEach(p=>p.style.display='none'); const el = document.getElementById('panel-' + name); if(el) el.style.display = 'block'; }
 
-/* show tab by id */
-function showTab(name){
-  document.querySelectorAll('.tab-content').forEach(s=>s.classList.remove('active'));
-  const el = document.getElementById('tab-' + (name==='ai'?'ai':name));
-  if(el) el.classList.add('active');
-}
+function saveGlobalKey(){ const v=(document.getElementById('global-key').value||'').trim(); if(!v){ alert('Enter a key'); return; } localStorage.setItem(STORE_GLOBAL, v); alert('Global key saved (localStorage).'); }
+function clearGlobalKey(){ localStorage.removeItem(STORE_GLOBAL); document.getElementById('global-key').value=''; alert('Cleared global key'); }
+function savePersonalKey(){ const v=(document.getElementById('personal-key').value||'').trim(); if(!v){ alert('Enter a key'); return; } localStorage.setItem(STORE_PERSONAL, v); alert('Saved personal key'); }
+function clearPersonalKey(){ localStorage.removeItem(STORE_PERSONAL); document.getElementById('personal-key').value=''; alert('Cleared personal key'); }
+document.getElementById('provider-select').addEventListener('change', (e)=>{ localStorage.setItem(STORE_PROVIDER, e.target.value); });
 
-/* ---------------------
-   SUBSCRIBE POPUP
-   --------------------- */
-document.getElementById('subscribe-open').addEventListener('click', ()=> {
-  window.open('https://www.youtube.com/@cursedgamer2','_blank');
-  // don't auto-mark subscribed - user must click I Subscribed banner
-});
-document.getElementById('support-dismiss').addEventListener('click', ()=> {
-  sessionStorage.setItem('suppressedPopup','1');
-  document.getElementById('support-popup').classList.add('hidden');
-});
-document.getElementById('support-close-x').addEventListener('click', ()=> {
-  sessionStorage.setItem('suppressedPopup','1');
-  document.getElementById('support-popup').classList.add('hidden');
-});
+function getEffectiveKey(){ return localStorage.getItem(STORE_GLOBAL) || localStorage.getItem(STORE_PERSONAL) || ''; }
+function getProvider(){ return localStorage.getItem(STORE_PROVIDER) || document.getElementById('provider-select').value || 'OpenAI'; }
 
-/* ---------------------
-   DEC 1 NOTICE / SUBSCRIPTION RULE
-   --------------------- */
-function setupDecNotice(){
-  const now = new Date();
-  const dec1 = new Date(now.getFullYear(), 11, 1); // Dec 1 (month is 0-indexed)
-  const noticeEl = document.getElementById('dec1-notice');
-  if(now >= dec1){
-    // show notice if not dismissed permanently
-    const dismissed = localStorage.getItem(STORAGE_PREFIX + 'noticeDismissed');
-    if(!dismissed) noticeEl.classList.remove('hidden');
-    // show locked badges
-    document.getElementById('quiz-locked-badge').classList.remove('hidden');
-    document.getElementById('tutor-locked-badge').classList.remove('hidden');
-  }
-
-  document.getElementById('dismiss-notice').addEventListener('click', ()=> {
-    localStorage.setItem(STORAGE_PREFIX + 'noticeDismissed','1');
-    noticeEl.classList.add('hidden');
-  });
-  document.getElementById('i-subscribed').addEventListener('click', ()=> {
-    // can't verify; user confirms by clicking
-    localStorage.setItem(SUBSCRIBED_FLAG,'1');
-    alert('Thanks! You are marked as subscribed locally. You can now use the Quiz Maker and Tutor.');
-    noticeEl.classList.add('hidden');
-  });
+async function callAI(prompt, opts={model:'gpt-4o-mini', temp:0.6, max_tokens:500}){
+  const key = getEffectiveKey();
+  const provider = getProvider();
+  if(!key) return null;
+  try {
+    if(provider === 'OpenAI'){
+      const endpoint = 'https://api.openai.com/v1/chat/completions';
+      const body = { model: opts.model || 'gpt-4o-mini', messages:[{role:'user', content:prompt}], temperature: opts.temp ?? 0.6, max_tokens: opts.max_tokens ?? 500 };
+      const r = await fetch(endpoint, { method:'POST', headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + key }, body: JSON.stringify(body) });
+      const data = await r.json();
+      if(data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+      const txt = data.choices?.[0]?.message?.content ?? null;
+      return txt;
+    } else if(provider === 'Gemini'){
+      const endpoint = 'https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generate';
+      const body = { prompt:{ text: prompt }, temperature: opts.temp ?? 0.6, maxOutputTokens: opts.max_tokens ?? 500 };
+      const url = endpoint + '?key=' + encodeURIComponent(key);
+      const r = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+      const data = await r.json();
+      if(data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+      const txt = data.candidates?.[0]?.content ?? data.output?.[0]?.content ?? null;
+      return txt;
+    }
+    return null;
+  } catch(err){
+    console.error('AI request failed', err);
+    return null;
+  }
 }
 
-/* check subscription enforcement */
-function isSubscribedConfirmed(){
-  return !!localStorage.getItem(SUBSCRIBED_FLAG);
-}
+/* Flashcards */
+function parseFlashInput(){ const raw=document.getElementById('flash-input').value.trim(); if(!raw){ alert('Enter flashcards or use AI generate'); return; } const lines=raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean); const cards=lines.map(l=>{ const parts=l.split('-'); const q=parts.shift().trim(); const a=parts.join('-').trim()||''; return { q,a }; }); currentSet={ id:Date.now(), title:'Manual set', cards }; renderCurrentSet(); }
+async function aiGenerateFlash(){ const topic=document.getElementById('flash-topic').value.trim(); const count=Number(document.getElementById('flash-count').value||5); if(!topic){ alert('Enter a topic for AI generation'); return; } const prompt=`Create ${count} concise study flashcards for the topic \"${topic}\". Output each on its own line as: Question - Answer.`; const ai=await callAI(prompt,{model:'gpt-4o-mini',temp:0.3,max_tokens:400}); if(ai===null){ const cards=Array.from({length:count},(_,i)=>({ q:`${topic} - point ${i+1}`, a:`Brief explanation ${i+1}` })); currentSet={ id:Date.now(), title:topic+' (demo)', cards }; renderCurrentSet(); return; } const lines=ai.split(/\r?\n/).map(s=>s.trim()).filter(Boolean); const cards=lines.map(line=>{ const parts=line.split('-'); const q=parts.shift().trim(); const a=parts.join('-').trim()||''; return { q,a }; }); currentSet={ id:Date.now(), title:topic, cards }; renderCurrentSet(); }
+function renderCurrentSet(){ const list=document.getElementById('flash-list'); if(!currentSet||!currentSet.cards||currentSet.cards.length===0){ list.innerHTML='<div class=\"small\">No cards yet.</div>'; return; } list.innerHTML=`<div style=\"font-weight:700;margin-bottom:8px\">${escapeHtml(currentSet.title)} · ${currentSet.cards.length} cards</div>` + currentSet.cards.map((c,i)=>`<div style=\"padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03)\"><strong>${i+1}.</strong> ${escapeHtml(c.q)} — <span class=\"small\">${escapeHtml(c.a)}</span></div>`).join(''); }
+function startPractice(){ if(!currentSet||!currentSet.cards||currentSet.cards.length===0){ alert('Generate or create a flashcard set first'); return; } practiceIndex=0; showingBack=false; document.getElementById('practice-area').style.display='block'; renderPracticeCard(); }
+function renderPracticeCard(){ document.getElementById('card-index').innerText=`Card ${practiceIndex+1} / ${currentSet.cards.length}`; document.getElementById('card-face').innerText= showingBack? (currentSet.cards[practiceIndex].a||'(no answer)') : (currentSet.cards[practiceIndex].q||'(no front)'); }
+function flipCard(){ showingBack=!showingBack; renderPracticeCard(); }
+function nextCard(){ practiceIndex=(practiceIndex+1)%currentSet.cards.length; showingBack=false; renderPracticeCard(); }
+function prevCard(){ practiceIndex=(practiceIndex-1+currentSet.cards.length)%currentSet.cards.length; showingBack=false; renderPracticeCard(); }
+function markKnown(){ currentSet.cards.splice(practiceIndex,1); if(currentSet.cards.length===0){ alert('All known!'); document.getElementById('practice-area').style.display='none'; return; } practiceIndex=practiceIndex%currentSet.cards.length; showingBack=false; renderPracticeCard(); }
+function saveCurrent(type){ if(type==='flash'){ if(!currentSet||!currentSet.cards||currentSet.cards.length===0){ alert('No flashcards to save'); return; } const item={id:Date.now(), type:'flash', title:currentSet.title||'Flash set', data:currentSet.cards}; saved.unshift(item); persistSaved(); renderSavedList(); alert('Flashcard set saved.'); } else if(type==='quiz'){ alert('Use Save Quiz in the Quiz Maker to save quizzes.'); } }
+function clearFlashInput(){ document.getElementById('flash-input').value=''; document.getElementById('flash-topic').value=''; }
 
-/* ---------------------
-   SETTINGS MODAL
-   --------------------- */
-function openSettingsModal(){
-  // sync UI with state
-  const currentColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#3b82f6';
-  document.getElementById('color-picker').value = currentColor;
-  document.getElementById('ai-provider-select-settings').value = app.aiProvider;
-  // load keys if exist
-  loadKeysFromStorage();
-  document.getElementById('openai-key').value = app.keys.openai || '';
-  document.getElementById('gemini-key').value = app.keys.gemini || '';
-  document.getElementById('settings-modal').classList.remove('hidden');
-}
-function closeSettingsModal(){ document.getElementById('settings-modal').classList.add('hidden'); }
+/* Quiz maker */
+function clearQuizInput(){ document.getElementById('quiz-input').value=''; document.getElementById('quiz-area').innerHTML=''; currentQuiz=null; }
+async function aiGenerateQuiz(){ const topic=document.getElementById('quiz-input').value.trim(); const n=Number(document.getElementById('quiz-count').value||5); if(!topic){ alert('Enter topic for AI quiz generation'); return; } const prompt=`Create ${n} multiple-choice questions (4 choices each) about \"${topic}\". For each question, include the question text followed by choices A-D on separate lines and indicate the correct choice letter in parentheses at the end of the question line.`; const ai=await callAI(prompt,{model:'gpt-4o-mini',temp:0.4,max_tokens:700}); if(ai===null){ const quiz=Array.from({length:n},(_,i)=>({ q:`What is ${topic} (example) #${i+1}?`, choices:['Option A','Option B','Option C','Option D'], a:0 })); loadQuizToUI(quiz); return; } const lines=ai.split(/\\r?\\n/).map(s=>s.trim()).filter(Boolean); const quiz=[]; for(let i=0;i<lines.length;i++){ const match=lines[i].match(/^\\d+[\\).\\s]+(.+?)(\\([A-D]\\))?$/i); if(match){ let qtext=match[1].trim(); let correct=null; const ansMatch=lines[i].match(/\\(([A-D])\\)$/i); if(ansMatch) correct="ABCD".indexOf(ansMatch[1].toUpperCase()); const choices=[]; for(let j=1;j<=4 && i+j<lines.length;j++){ const c=lines[i+j].replace(/^[A-D][\\).\\s-]*/i,'').trim(); choices.push(c); } if(choices.length===4){ quiz.push({ q:qtext, choices, a: correct ?? 0 }); } } } if(quiz.length===0){ for(let i=1;i<=n;i++) quiz.push({ q:`${topic} question #${i}`, choices:['A','B','C','D'], a:0 }); } loadQuizToUI(quiz); }
+function loadQuizToUI(quiz){ currentQuiz=quiz; document.getElementById('quiz-area').innerHTML = quiz.map((item, idx)=>`<div style="margin-bottom:10px"><div style="font-weight:700">${idx+1}. ${escapeHtml(item.q)}</div><div>${item.choices.map((c,ci)=>`<label style="display:block;margin-top:6px"><input type="radio" name="q${idx}" value="${ci}"> ${escapeHtml(c)}</label>`).join('')}</div></div>`).join('') + '<div style="display:flex;gap:8px"><button class="btn" onclick="gradeCurrentQuiz()">Submit</button><button class="btn" onclick="saveCurrentQuiz()">Save Quiz</button></div>'; }
+function gradeCurrentQuiz(){ if(!currentQuiz) return alert('No quiz loaded'); let score=0; currentQuiz.forEach((q,i)=>{ const sel=document.querySelector(`input[name="q${i}"]:checked`); if(sel && Number(sel.value)===(q.a||0)) score++; }); alert(`Score: ${score} / ${currentQuiz.length}`); }
+function saveCurrentQuiz(){ if(!currentQuiz) return alert('No quiz to save'); const item={ id:Date.now(), type:'quiz', title:'Quiz ' + new Date().toLocaleString(), data: currentQuiz }; saved.unshift(item); persistSaved(); renderSavedList(); alert('Quiz saved.'); }
+function createManualQuiz(){ const raw=document.getElementById('quiz-input').value.trim(); if(!raw){ alert('Enter manual quiz lines'); return; } const lines=raw.split(/\\r?\\n/).map(l=>l.trim()).filter(Boolean); const quiz=lines.map(line=>{ const ansMatch=line.match(/\\((\\d+)\\)\\s*$/); let ans=0; let core=line; if(ansMatch){ ans=Number(ansMatch[1]); core=line.replace(/\\(\\d+\\)\\s*$/,'').trim(); } const parts=core.split('|').map(p=>p.trim()); const q=parts.shift(); const choices=parts; return { q, choices: choices.length?choices:['A','B','C','D'], a: ans||0 }; }); loadQuizToUI(quiz); }
 
-document.getElementById('settings-cancel').addEventListener('click', ()=> closeSettingsModal());
-document.getElementById('settings-save').addEventListener('click', ()=>{
-  // apply theme
-  const color = document.getElementById('color-picker').value;
-  document.documentElement.style.setProperty('--primary', color);
-  localStorage.setItem(STORAGE_PREFIX + 'themeColor', color); // save color
-  // provider
-  app.aiProvider = document.getElementById('ai-provider-select-settings').value;
-  saveSettingsToStorage();
-  // if owner unlocked, also save keys automatically when they click Save
-  if(window.ownerUnlocked){
-    app.keys.openai = document.getElementById('openai-key').value.trim();
-    app.keys.gemini = document.getElementById('gemini-key').value.trim();
-    saveKeysToStorage();
-  }
-  closeSettingsModal();
-});
+/* Quiz Study */
+function populateStudySources(){ const sel=document.getElementById('study-source'); sel.innerHTML = saved.map(s=>`<option value="${s.id}">${escapeHtml(s.title|| (s.type+' set'))} (${s.type})</option>`).join(''); }
+function startStudy(){ const id=Number(document.getElementById('study-source').value); const item=saved.find(s=>s.id===id); if(!item){ alert('Choose a saved set'); return; } studyQueue=[]; if(item.type==='flash'){ studyQueue = item.data.map(c=>({ type:'flash', q:c.q, a:c.a })); } else if(item.type==='quiz'){ studyQueue = item.data.map(q=>({ type:'quiz', q:q.q, choices:q.choices, a:q.a })); } else { alert('Unsupported type'); return; } studyResults=[]; presentStudyItem(0); }
+function presentStudyItem(idx){ if(idx>=studyQueue.length){ const wrong=studyResults.filter(r=>!r.correct); let html=`<div style="font-weight:700">Study complete</div><div class="small" style="margin-top:8px">Total: ${studyResults.length}, Correct: ${studyResults.filter(r=>r.correct).length}, Wrong: ${wrong.length}</div>`; if(wrong.length) html += `<div style="margin-top:8px"><button class="btn" onclick="repeatWrong()">Repeat wrong</button></div>`; document.getElementById('study-area').innerHTML = html; return; } const it=studyQueue[idx]; if(it.type==='flash'){ document.getElementById('study-area').innerHTML = `<div style="font-weight:700">${escapeHtml(it.q)}</div><div style="margin-top:8px"><button class="btn" onclick="studyMark(true,${idx})">I knew it</button> <button class="btn" onclick="studyMark(false,${idx})">I didn't</button></div>`; } else { document.getElementById('study-area').innerHTML = `<div style="font-weight:700">${escapeHtml(it.q)}</div><div style="margin-top:8px">${it.choices.map((c,i)=>`<label style="display:block;margin:6px 0"><input type="radio" name="studyq" value="${i}"> ${escapeHtml(c)}</label>`).join('')}<div style="margin-top:8px"><button class="btn" onclick="studyCheckAnswer(${idx})">Submit</button></div></div>`; } }
+function studyMark(knew, idx){ studyResults.push({ idx, correct:knew }); presentStudyItem(idx+1); }
+function studyCheckAnswer(idx){ const sel=document.querySelector('input[name="studyq"]:checked'); if(!sel){ alert('Select answer'); return; } const it=studyQueue[idx]; const correct = Number(sel.value) === it.a; studyResults.push({ idx, correct }); presentStudyItem(idx+1); }
+function repeatWrong(){ studyQueue = studyResults.filter(r=>!r.correct).map(r=>studyQueue[r.idx]); studyResults=[]; presentStudyItem(0); }
 
-/* Owner unlock / keys */
-document.getElementById('unlock-owner-btn').addEventListener('click', ()=>{
-  const pass = document.getElementById('owner-pass').value;
-  if(pass === 'owner123'){
-    window.ownerUnlocked = true;
-    document.getElementById('owner-controls').classList.remove('hidden');
-    document.getElementById('owner-lock-msg').classList.add('hidden');
-    // preload keys into fields
-    loadKeysFromStorage();
-    document.getElementById('openai-key').value = app.keys.openai || '';
-    document.getElementById('gemini-key').value = app.keys.gemini || '';
-  } else {
-    alert('Incorrect password.');
-  }
-});
-document.getElementById('save-keys').addEventListener('click', ()=>{
-  if(!window.ownerUnlocked){ alert('Unlock with owner password first.'); return; }
-  app.keys.openai = document.getElementById('openai-key').value.trim();
-  app.keys.gemini = document.getElementById('gemini-key').value.trim();
-  saveKeysToStorage();
-  alert('Keys saved locally.');
-});
-document.getElementById('export-keys').addEventListener('click', ()=>{
-  const blob = new Blob([JSON.stringify(app.keys,null,2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'studyhub-keys.json'; a.click(); URL.revokeObjectURL(url);
-});
-document.getElementById('import-keys').addEventListener('click', ()=>{
-  const input = document.createElement('input'); input.type='file'; input.accept='application/json';
-  input.onchange = e => {
-    const f = e.target.files[0];
-    if(!f) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try{
-        const obj = JSON.parse(ev.target.result);
-        if(obj.openai) app.keys.openai = obj.openai;
-        if(obj.gemini) app.keys.gemini = obj.gemini;
-        saveKeysToStorage();
-        alert('Keys imported.');
-      }catch(err){ alert('Invalid file.'); }
-    };
-    reader.readAsText(f);
-  };
-  input.click();
-});
+/* Saved items */
+function persistSaved(){ setLS(STORE_SAVED, saved); populateStudySources(); }
+function renderSavedList(){ persistSaved(); const el=document.getElementById('saved-list'); if(!saved||saved.length===0){ el.innerHTML='<div class="small">No saved items</div>'; return; } el.innerHTML = saved.map(s=>`<div style="padding:8px;border-radius:8px;margin-bottom:8px;background:linear-gradient(180deg,#24163f,#21133a)"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">${escapeHtml(s.title|| (s.type+' set'))}</div><div style="display:flex;gap:6px"><button class="btn ghost" onclick="loadSaved(${s.id})">Load</button><button class="btn ghost" onclick="deleteSaved(${s.id})">Delete</button></div></div><div class="small" style="margin-top:6px">Type: ${s.type} — ${s.data? s.data.length : ''} items</div></div>`).join(''); populateStudySources(); }
+function loadSaved(id){ const item=saved.find(s=>s.id===id); if(!item) return alert('Not found'); if(item.type==='flash'){ currentSet={ id:item.id, title:item.title, cards:item.data }; renderCurrentSet(); showPanel('flash'); } else if(item.type==='quiz'){ currentQuiz=item.data; loadQuizToUI(currentQuiz); showPanel('quiz'); } }
+function deleteSaved(id){ if(!confirm('Delete saved item?')) return; saved = saved.filter(s=>s.id!==id); persistSaved(); renderSavedList(); }
+function exportSaved(){ const blob=new Blob([JSON.stringify(saved,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='studyhub-saved.json'; a.click(); URL.revokeObjectURL(url); }
+function importSaved(){ const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=ev=>{ try{ const arr=JSON.parse(ev.target.result); if(!Array.isArray(arr)) throw new Error('Invalid'); arr.forEach(a=>a.id=Date.now()+Math.floor(Math.random()*100000)); saved=arr.concat(saved); persistSaved(); renderSavedList(); alert('Imported'); }catch(err){ alert('Invalid file'); } }; r.readAsText(f); }; inp.click(); }
+function clearSaved(){ if(!confirm('Clear all saved items?')) return; saved=[]; persistSaved(); renderSavedList(); }
 
-/* ---------------------
-   MINI BROWSER
-   --------------------- */
-function openMiniBrowser(){
-  document.getElementById('mini-browser-modal').classList.remove('hidden');
-  document.getElementById('mini-frame').src = 'about:blank'; // Clear previous content
-}
-document.getElementById('mini-close').addEventListener('click', ()=> document.getElementById('mini-browser-modal').classList.add('hidden'));
-document.getElementById('mini-go').addEventListener('click', ()=>{
-  let url = document.getElementById('mini-url').value.trim();
-  if(!url) return;
-  if(!/^https?:\/\//i.test(url)) url = 'https://' + url; // Enforce protocol
-  document.getElementById('mini-frame').src = url;
-});
+/* AI Tutor */
+async function askTutor(){ const q=document.getElementById('tutor-q').value.trim(); if(!q) return alert('Type your question'); const area=document.getElementById('tutor-response'); area.innerHTML='<div class="small">Thinking... (uses selected provider and key)</div>'; const prompt=`Explain this clearly for a 7th grade student, with short bullets and one short example:\n\n${q}`; const ai=await callAI(prompt,{model:'gpt-4o-mini',temp:0.25,max_tokens:450}); if(ai===null){ area.innerHTML=`<div style="font-weight:700">Demo answer for: ${escapeHtml(q)}</div><div class="small" style="margin-top:8px">No API key set — set a Global or Personal API key to use the real AI.</div><div style="margin-top:8px">Short demo explanation: ${escapeHtml(q)} is important because... (demo)</div>`; return; } area.innerHTML=`<div style="font-weight:700">Tutor answer</div><div style="margin-top:8px">${ai.replace(/\n/g,'<br>')}</div>`; }
 
-/* ---------------------
-   RESOURCES & GAMES
-   --------------------- */
-const resources = {
-  Math: [
-    {title:'Khan Academy — 7th Grade Math', url:'https://www.khanacademy.org/math/cc-seventh-grade-math', type:'link'},
-    {title:'Desmos Graphing Calculator', url:'https://www.desmos.com/calculator', type:'tool'},
-    {title:'Prodigy Math Game', url:'https://www.prodigygame.com/', type:'game'}
-  ],
-  Science: [
-    {title:'PhET Simulations', url:'https://phet.colorado.edu/', type:'tool'},
-    {title:'NASA Eyes on the Solar System', url:'https://eyes.nasa.gov/', type:'tool'},
-    {title:'Science Kids', url:'https://www.sciencekids.co.nz/', type:'link'}
-  ],
-  History: [
-    {title:'History for Kids — Ancient Civilizations', url:'https://www.historyforkids.net/ancient-history.html', type:'link'},
-    {title:'iCivics (Gov Games)', url:'https://www.icivics.org/games', type:'game'}
-  ],
-  ELA: [
-    {title:'Project Gutenberg', url:'https://www.gutenberg.org/', type:'link'},
-    {title:'Quill.org', url:'https://www.quill.org/', type:'tool'}
-  ]
-};
-const games = {
-  Math: [
-    {title:'Integer Warp (MathPlayground)', url:'https://www.mathplayground.com/ASB_IntegerWarp.html'},
-    {title:'Fraction Matcher (Math is Fun Activities)', url:'https://www.mathsisfun.com/'},
-  ],
-  Science: [
-    {title:'Build a Cell (Cells Alive)', url:'https://www.cellsalive.com/cells/cell_model.htm'},
-    {title:'Switch Zoo', url:'https://www.switchzoo.com/'}
-  ],
-  History: [
-    {title:'Mission US', url:'https://www.mission-us.org/'},
-    {title:'Google Earth Voyager', url:'https://earth.google.com/web/voyager'}
-  ],
-  ELA: [
-    {title:'Storybird / Storyboard That', url:'https://www.storyboardthat.com/'}
-  ]
-};
+/* Mini browser */
+function openMini(){ let url=(document.getElementById('mini-url').value||'').trim(); if(!url) return; if(!/^https?:\/\//i.test(url)) url='https://'+url; document.getElementById('mini-frame').src=url; }
 
-function setupResourcesAndGames(){
-  // resource buttons
-  ['Math','Science','History','ELA'].forEach(sub=>{
-    const btn = document.getElementById('btn-' + sub);
-    if(btn) btn.addEventListener('click', ()=> loadResources(sub));
-  });
-  loadResources('Math');
-
-  // load games
-  const gl = document.getElementById('game-list');
-  gl.innerHTML = '';
-  Object.keys(games).forEach(cat=>{
-    games[cat].forEach(g=>{
-      const d = document.createElement('div');
-      d.className = 'card';
-      d.innerHTML = `<h4 class="font-bold">${g.title}</h4><p class="text-sm text-gray-400 mb-2">${cat}</p><a class="text-primary underline" href="${g.url}" target="_blank">Open</a>`;
-      gl.appendChild(d);
-    });
-  });
-}
-function loadResources(subject){
-  const list = document.getElementById('resource-list');
-  list.innerHTML = '';
-  // Update active class on buttons
-  document.querySelectorAll('#tab-resources button').forEach(btn => {
-    btn.classList.remove('bg-primary', 'bg-gray-800');
-    if (btn.id === 'btn-' + subject) {
-      btn.classList.add('bg-primary');
-    } else {
-      btn.classList.add('bg-gray-800');
-    }
-  });
-  resources[subject].forEach(r=>{
-    const d = document.createElement('div');
-    d.className = 'card';
-    d.innerHTML = `<h4 class="font-bold">${r.title}</h4><p class="text-sm text-gray-400">${r.type}</p><a class="text-primary underline" href="${r.url}" target="_blank">Open</a>`;
-    list.appendChild(d);
-  });
-}
-
-/* ---------------------
-   AI CALLS (OpenAI & Gemini)
-   --------------------- */
-/* Warning: these calls use client-side keys. For production, proxy via server. */
-async function callAI(promptText, modelOpts = {}) {
-  const provider = app.aiProvider || document.getElementById('ai-provider-select-settings').value || 'OpenAI';
-  // ensure latest keys loaded from storage
-  loadKeysFromStorage();
-
-  if(provider === 'OpenAI') {
-    const key = app.keys.openai || '';
-    if(!key) return 'Error: OpenAI API key not set in Admin / Settings.';
-    try{
-      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer ' + key },
-        body: JSON.stringify({
-          model: modelOpts.model || 'gpt-3.5-turbo',
-          messages: [{role:'user', content: promptText}],
-          temperature: modelOpts.temperature ?? 0.7,
-          max_tokens: modelOpts.max_tokens ?? 600
-        })
-      });
-      const data = await resp.json();
-      if(data.error) return `Error: ${data.error.message || JSON.stringify(data.error)}`;
-      return data.choices?.[0]?.message?.content || JSON.stringify(data);
-    } catch(e){ return 'Error: ' + e.message; }
-  } else if(provider === 'Gemini') {
-    const key = app.keys.gemini || '';
-    if(!key) return 'Error: Gemini API key not set in Admin / Settings.';
-    try{
-      // Using the publicly available endpoint
-      const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(key);
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-      });
-      const data = await resp.json();
-      if(data.error) return 'Error: ' + (data.error.message || JSON.stringify(data.error));
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || JSON.stringify(data);
-    } catch(e){ return 'Error: ' + e.message; }
-  } else {
-    return 'Error: Unknown provider selected.';
-  }
-}
-
-/* ---------------------
-   GENERATORS: wiring UI
-   --------------------- */
-async function generateAndShow(idTopic, idResult, promptBuilder, lockedIfDec1=false){
-  // enforce Dec 1 rule for certain features
-  const now = new Date();
-  const dec1 = new Date(now.getFullYear(), 11, 1);
-  if(lockedIfDec1 && now >= dec1 && !isSubscribedConfirmed()){
-    alert('This feature requires subscription to @cursedgamer2 (see notice). Click "I Subscribed" to enable.');
-    return;
-  }
-
-  const topic = document.getElementById(idTopic).value.trim();
-  if(!topic){ alert('Enter a topic or question.'); return; }
-  const resultEl = document.getElementById(idResult);
-  resultEl.innerHTML = '<em class="text-yellow-300">Thinking...</em>';
-  const prompt = promptBuilder(topic);
-  const out = await callAI(prompt);
-  resultEl.innerHTML = marked.parse(out || 'No response.');
-  return out;
-}
-
-/* flash */
-document.getElementById('gen-flash').addEventListener('click', async ()=>{
-  const out = await generateAndShow('flashcard-topic', 'flash-result', t => `Create 5 flashcards for the topic: ${t}. Format as Question: Answer pairs.`);
-});
-document.getElementById('save-flash').addEventListener('click', ()=> saveGenerated('flash', 'flashcard-topic', 'flash-result'));
-
-/* quiz (locked by Dec 1 rule) */
-document.getElementById('gen-quiz').addEventListener('click', async ()=>{
-  await generateAndShow('quiz-topic','quiz-result', t => `Create a 3-question multiple choice quiz about ${t}. Provide the answer key.`, true);
-});
-document.getElementById('save-quiz').addEventListener('click', ()=> saveGenerated('quiz','quiz-topic','quiz-result'));
-
-/* tutor (locked by Dec 1 rule) */
-document.getElementById('gen-tutor').addEventListener('click', async ()=>{
-  await generateAndShow('tutor-topic','tutor-result', t => `Explain and teach this topic in simple terms: ${t}`, true);
-});
-document.getElementById('save-tutor').addEventListener('click', ()=> saveGenerated('tutor','tutor-topic','tutor-result'));
-
-/* helper */
-document.getElementById('gen-helper').addEventListener('click', async ()=>{
-  await generateAndShow('helper-topic','helper-result', t => `Give concise study tips, a short summary, and 5 practice questions for: ${t}`);
-});
-document.getElementById('save-helper').addEventListener('click', ()=> saveGenerated('helper','helper-topic','helper-result'));
-
-/* save generated content to local dashboard */
-function saveGenerated(type, topicId, resultId){
-  const topic = document.getElementById(topicId).value.trim();
-  const content = document.getElementById(resultId).innerHTML.trim();
-  if(!content){ alert('Nothing to save. Generate first.'); return; }
-  const store = JSON.parse(localStorage.getItem(DASHBOARD_STORE) || '[]');
-  store.unshift({ id: Date.now(), type, topic, content });
-  localStorage.setItem(DASHBOARD_STORE, JSON.stringify(store));
-  alert('Saved to Dashboard.');
-  renderDashboard();
-}
-
-/* ---------------------
-   DASHBOARD
-   --------------------- */
-function renderDashboard(){
-  const listEl = document.getElementById('dashboard-list');
-  listEl.innerHTML = '';
-  const store = JSON.parse(localStorage.getItem(DASHBOARD_STORE) || '[]');
-  if(store.length === 0){
-    listEl.innerHTML = '<div class="text-gray-400">No saved items yet.</div>';
-    return;
-  }
-  store.forEach(item=>{
-    const d = document.createElement('div');
-    d.className = 'card';
-    d.innerHTML = `<div class="flex justify-between items-start"><div><strong class="capitalize">${item.type}</strong> · <span class="text-gray-400">${item.topic}</span></div>
-      <div class="flex gap-2"><button data-id="${item.id}" class="preview-btn bg-gray-700 px-2 py-1 rounded">Preview</button><button data-id="${item.id}" class="del-btn bg-red-600 px-2 py-1 rounded">Delete</button></div></div>
-      <div class="mt-2 text-sm text-gray-300 hidden content" id="content-${item.id}">${item.content}</div>`;
-    listEl.appendChild(d);
-  });
-
-  // attach listeners
-  document.querySelectorAll('.preview-btn').forEach(b=>{
-    b.addEventListener('click', ev=>{
-      const id = ev.target.getAttribute('data-id');
-      const el = document.getElementById('content-'+id);
-      if(el) el.classList.toggle('hidden');
-    });
-  });
-  document.querySelectorAll('.del-btn').forEach(b=>{
-    b.addEventListener('click', ev=>{
-      const id = +ev.target.getAttribute('data-id');
-      let store = JSON.parse(localStorage.getItem(DASHBOARD_STORE) || '[]');
-      store = store.filter(x=> x.id !== id);
-      localStorage.setItem(DASHBOARD_STORE, JSON.stringify(store));
-      renderDashboard();
-    });
-  });
-}
-
-/* export / import dashboard */
-document.getElementById('export-data').addEventListener('click', ()=>{
-  const blob = new Blob([localStorage.getItem(DASHBOARD_STORE) || '[]'], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'studyhub-data.json'; a.click(); URL.revokeObjectURL(url);
-});
-document.getElementById('import-data').addEventListener('click', ()=> document.getElementById('import-file').click());
-document.getElementById('import-file').addEventListener('change', (e)=>{
-  const f = e.target.files[0]; if(!f) return;
-  const r = new FileReader(); r.onload = ev=>{
-    try{
-      const arr = JSON.parse(ev.target.result);
-      if(!Array.isArray(arr)) throw new Error('Invalid');
-      localStorage.setItem(DASHBOARD_STORE, JSON.stringify(arr.concat(JSON.parse(localStorage.getItem(DASHBOARD_STORE) || '[]'))));
-      renderDashboard();
-      alert('Imported.');
-    }catch(err){ alert('Invalid file.'); }
-  }; r.readAsText(f);
-});
-
-/* ---------------------
-   ADMIN PANEL events
-   --------------------- */
-function openAdminModal(){ document.getElementById('admin-modal').classList.remove('hidden'); }
-document.getElementById('admin-close').addEventListener('click', ()=> document.getElementById('admin-modal').classList.add('hidden'));
-
-document.getElementById('clear-dashboard').addEventListener('click', ()=>{
-  if(confirm('Are you sure you want to clear ALL dashboard items? This cannot be undone.')){
-    localStorage.removeItem(DASHBOARD_STORE);
-    renderDashboard();
-    alert('Dashboard cleared.');
-    document.getElementById('admin-modal').classList.add('hidden');
-  }
-});
-
-document.getElementById('fill-demo-keys').addEventListener('click', ()=>{
-  // Placeholder logic for filling demo keys
-  alert('Demo keys filled. Note: These are placeholders and may not work with live APIs.');
-});
-
-/* ---------------------
-   FOCUS TIMER & NOISE (TONE.js)
-   --------------------- */
-let timerInterval;
-let timerSeconds = 0;
-let isTimerRunning = false;
-let noiseSynth;
-const timerDisplay = document.getElementById('timer-display');
-const noiseButton = document.getElementById('noise-btn');
-
-function updateTimerDisplay(){
-  const minutes = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
-  const seconds = String(timerSeconds % 60).padStart(2, '0');
-  timerDisplay.textContent = `${minutes}:${seconds}`;
-}
-
-// Global functions for timer buttons in HTML
-window.startTimer = function(durationMinutes){
-  if(isTimerRunning) return; 
-  
-  timerSeconds = durationMinutes * 60;
-  isTimerRunning = true;
-  updateTimerDisplay();
-
-  timerInterval = setInterval(()=>{
-    timerSeconds--;
-    updateTimerDisplay();
-    if(timerSeconds <= 0){
-      clearInterval(timerInterval);
-      isTimerRunning = false;
-      timerDisplay.textContent = 'TIME UP!';
-    }
-  }, 1000);
-}
-
-window.resetTimer = function(){
-  clearInterval(timerInterval);
-  isTimerRunning = false;
-  timerSeconds = 0;
-  timerDisplay.textContent = '00:00';
-}
-
-// Tone.js Noise Generator (Pink Noise is good for focus)
-noiseButton.addEventListener('click', async ()=>{
-  if(!noiseSynth){
-    await Tone.start();
-    noiseSynth = new Tone.Noise('pink').toDestination();
-    noiseSynth.volume.value = -20; // Lower the volume
-  }
-
-  if(noiseSynth.state !== 'started'){
-    noiseSynth.start();
-    noiseButton.textContent = 'Stop Focus Noise';
-    noiseButton.classList.remove('bg-gray-700');
-    noiseButton.classList.add('bg-red-600');
-  } else {
-    noiseSynth.stop();
-    noiseButton.textContent = 'Start Focus Noise';
-    noiseButton.classList.remove('bg-red-600');
-    noiseButton.classList.add('bg-gray-700');
-  }
-});
-
+/* Init UI */
+renderSavedList();
+populateStudySources();
 </script>
+</body>
 </html>
